@@ -1,0 +1,12 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+- This is a kart race game
+- Use geometric simple objects
+- Use MCV file structures
+- Keep files short
+- Keep functions and methods short
+- Explain the goal and the use of every funtion and method before the code of it
+- Do not add comments inside of the code of functions or methods
