@@ -1,16 +1,19 @@
+import os
 from panda3d.core import CardMaker, Vec4
 
 def create_ground(game_root, loader):
     """
     Creates the ground for the game
     """
-    try:
-        # Try loading the model first
+    model_path = "models/plane.egg"  # Panda3D usually adds .egg
+
+    # Check if the model file exists in the expected project location
+    if os.path.exists(model_path):
         ground = loader.loadModel("models/plane")
         ground.reparentTo(game_root)
-    except OSError:
+    else:
         # Fallback if models/plane is not found
-        print("Warning: models/plane.egg not found. Using CardMaker fallback.")
+        print(f"Warning: {model_path} not found. Using CardMaker fallback.")
         cm = CardMaker("ground")
         cm.setFrame(-500, 500, -500, 500)
         ground = game_root.attachNewNode(cm.generate())

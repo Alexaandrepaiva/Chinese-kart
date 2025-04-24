@@ -193,7 +193,7 @@ class MenuManager:
             scale=0.07, 
             pos=(0, 0, -0.28), 
             parent=self.game_won_menu, 
-            command=self.base.quitGame, 
+            command=self.base.state_manager.quit_game, 
             pressEffect=1
         )
         
