@@ -1,5 +1,6 @@
-from panda3d.core import Vec3
+from panda3d.core import Vec3, Vec4
 from direct.task import Task
+from physics.track_detection import is_kart_on_track, get_kart_terrain
 
 class KartPhysics:
     def __init__(self, kart):
@@ -17,6 +18,33 @@ class KartPhysics:
         self.turn_speed = 100.0
         self.drag = 0.5  # Simple linear drag
         self.friction = 5.0  # Friction when not accelerating/braking
+        
+        # Terrain-specific factors
+        self.current_terrain = 'road'  # Current terrain: 'road', 'sand', or 'lawn'
+        self.terrain_factors = {
+            'road': {
+                'speed': 1.0,       # No speed reduction on road
+                'acceleration': 1.0, # No acceleration reduction on road
+                'friction': 1.0      # No extra friction on road
+            },
+            'sand': {
+                'speed': 0.8,       # 20% speed reduction on sand
+                'acceleration': 0.7, # 30% acceleration reduction on sand
+                'friction': 1.3      # 30% more friction on sand
+            },
+            'lawn': {
+                'speed': 0.5,       # 50% speed reduction on lawn
+                'acceleration': 0.5, # 50% acceleration reduction on lawn
+                'friction': 1.5      # 50% more friction on lawn
+            }
+        }
+        
+        # For display purposes
+        self.terrain_colors = {
+            'road': Vec4(0.3, 0.3, 0.3, 1),        # Dark gray
+            'sand': Vec4(0.87, 0.77, 0.54, 1),     # Beige
+            'lawn': Vec4(0.4, 0.7, 0.3, 1)         # Green
+        }
 
     def setup_controls(self, accept_method):
         """
@@ -37,7 +65,7 @@ class KartPhysics:
         """
         self.key_map[key] = value
 
-    def update(self, dt, track_z=0):
+    def update(self, dt, track_z=0, track_curve_points=None, road_width=10.0, track_width=20.0):
         """
         Update kart physics based on current controls and time delta
         """
@@ -45,17 +73,29 @@ class KartPhysics:
         if not any(self.key_map.values()) and abs(self.velocity) < 0.1:
             self.velocity = 0
             return
+            
+        # Check what terrain the kart is on
+        if track_curve_points:
+            kart_pos = self.kart.getPos()
+            self.current_terrain = get_kart_terrain(kart_pos, track_curve_points, road_width, track_width)
+        else:
+            self.current_terrain = 'road'  # Default to road if no track data provided
 
         current_heading = self.kart.getH()
 
-        # Acceleration / Braking
+        # Get terrain-specific factors
+        terrain_factors = self.terrain_factors[self.current_terrain]
+        
+        # Acceleration / Braking - Apply terrain-specific effects
         if self.key_map["forward"]:
-            self.velocity += self.acceleration * dt
+            acceleration_multiplier = terrain_factors['acceleration']
+            self.velocity += self.acceleration * dt * acceleration_multiplier
         elif self.key_map["brake"]:
             self.velocity -= self.braking_force * dt
         else:
             # Apply friction/drag if no acceleration/brake input
-            friction_force = self.friction * dt
+            friction_multiplier = terrain_factors['friction']
+            friction_force = self.friction * dt * friction_multiplier
             drag_force = self.drag * self.velocity * dt
             if self.velocity > 0:
                 self.velocity -= max(0, friction_force + drag_force)
@@ -63,8 +103,10 @@ class KartPhysics:
                 # Allow braking to reverse slightly, but friction stops forward motion
                 self.velocity += max(0, friction_force - drag_force)  # Drag opposes motion
 
-        # Clamp velocity
-        self.velocity = max(-self.max_velocity / 4, min(self.max_velocity, self.velocity))  # Allow slower reverse
+        # Clamp velocity - Apply terrain-specific speed limiting
+        speed_multiplier = terrain_factors['speed']
+        max_velocity_adjusted = self.max_velocity * speed_multiplier
+        self.velocity = max(-max_velocity_adjusted / 4, min(max_velocity_adjusted, self.velocity))  # Allow slower reverse
 
         # Stop if velocity is very small
         if not self.key_map["forward"] and not self.key_map["brake"] and abs(self.velocity) < 0.1:

@@ -29,4 +29,7 @@ def create_kart(game_root, loader):
     # Set common properties outside try/except
     kart.setColor(Vec4(1, 0, 0, 1))  # Red color
     
+    # --- Rotate the kart 180 degrees to align its visual front with +Y ---
+    kart.setH(180)
+    
     return kart
