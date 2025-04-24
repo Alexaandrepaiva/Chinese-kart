@@ -1,5 +1,6 @@
 from direct.gui.DirectGui import DirectFrame, DirectButton, DirectLabel
 import time
+from panda3d.core import AntialiasAttrib
 
 class MenuManager:
     def __init__(self, base):
@@ -28,23 +29,29 @@ class MenuManager:
         # Menu frame
         self.menu_frame = DirectFrame(frameColor=(0.2, 0.2, 0.2, 0.8),
                                      frameSize=(-0.7, 0.7, -0.5, 0.5),
-                                     parent=self.base.aspect2d)  # Attach to 2D layer
+                                     parent=self.base.aspect2d)
 
         # Title label
         self.title_label = DirectLabel(text="Chinese Kart",
-                                      scale=0.15,
+                                      scale=0.16,
                                       pos=(0, 0, 0.3),
                                       text_fg=(1, 1, 1, 1),
-                                      frameColor=(0, 0, 0, 0),  # Transparent background
-                                      text_font=self.title_font, # Apply title font
+                                      frameColor=(0, 0, 0, 0),
+                                      text_font=self.title_font,
                                       parent=self.menu_frame)
+        self.title_label.setAntialias(AntialiasAttrib.MAuto)
 
         # Start button
         self.start_button = DirectButton(text="Start Game",
                                         scale=0.1,
                                         pos=(0, 0, -0.2),
                                         command=start_game_callback,
-                                        text_font=self.options_font, # Apply options font
+                                        text_font=self.options_font,
+                                        frameColor=(1, 1, 1, 1),
+                                        text_fg=(0, 0, 0, 1),
+                                        relief='flat',
+                                        borderWidth=(0.01, 0.01),
+                                        pad=(0.4, 0.25),
                                         parent=self.menu_frame)
 
     def create_pause_menu(self, resume_callback, restart_callback, quit_callback):
@@ -68,21 +75,36 @@ class MenuManager:
                     scale=0.1,
                     pos=(0, 0, 0),
                     command=resume_callback,
-                    text_font=self.options_font, # Apply options font
+                    text_font=self.options_font,
+                    frameColor=(1, 1, 1, 1),
+                    text_fg=(0, 0, 0, 1),
+                    relief='flat',
+                    borderWidth=(0.01, 0.01),
+                    pad=(0.4, 0.25),
                     parent=self.pause_menu)
 
         DirectButton(text="Restart",
                     scale=0.1,
                     pos=(0, 0, -0.15),
                     command=restart_callback,
-                    text_font=self.options_font, # Apply options font
+                    text_font=self.options_font,
+                    frameColor=(1, 1, 1, 1),
+                    text_fg=(0, 0, 0, 1),
+                    relief='flat',
+                    borderWidth=(0.01, 0.01),
+                    pad=(0.4, 0.25),
                     parent=self.pause_menu)
 
         DirectButton(text="Quit",
                     scale=0.1,
                     pos=(0, 0, -0.3),
                     command=quit_callback,
-                    text_font=self.options_font, # Apply options font
+                    text_font=self.options_font,
+                    frameColor=(1, 1, 1, 1),
+                    text_fg=(0, 0, 0, 1),
+                    relief='flat',
+                    borderWidth=(0.01, 0.01),
+                    pad=(0.4, 0.25),
                     parent=self.pause_menu)
 
     def hide_menu(self):
