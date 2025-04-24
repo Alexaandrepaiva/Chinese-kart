@@ -1,13 +1,26 @@
 from direct.gui.DirectGui import DirectFrame, DirectButton, DirectLabel
 import time
+from panda3d.core import AntialiasAttrib
 
 class MenuManager:
     def __init__(self, base):
         self.base = base
+        self.loader = base.loader  # Get the asset loader
         self.menu_frame = None
         self.pause_menu = None
         self.game_over_menu = None
         self.game_won_menu = None
+
+        # Load custom fonts
+        try:
+            self.title_font = self.loader.loadFont('fonts/SpaceGrotesk-Regular.ttf')
+            self.options_font = self.loader.loadFont('fonts/Poppins-Regular.ttf')
+            print("Custom fonts loaded successfully.")
+        except Exception as e:
+            print(f"Error loading custom fonts: {e}")
+            print("Falling back to default fonts.")
+            self.title_font = None # Or use default font: DirectGuiGlobals.getDefaultFont()
+            self.options_font = None
 
     def create_start_menu(self, start_game_callback):
         """
@@ -16,21 +29,29 @@ class MenuManager:
         # Menu frame
         self.menu_frame = DirectFrame(frameColor=(0.2, 0.2, 0.2, 0.8),
                                      frameSize=(-0.7, 0.7, -0.5, 0.5),
-                                     parent=self.base.aspect2d)  # Attach to 2D layer
+                                     parent=self.base.aspect2d)
 
         # Title label
         self.title_label = DirectLabel(text="Chinese Kart",
-                                      scale=0.15,
+                                      scale=0.16,
                                       pos=(0, 0, 0.3),
                                       text_fg=(1, 1, 1, 1),
-                                      frameColor=(0, 0, 0, 0),  # Transparent background
+                                      frameColor=(0, 0, 0, 0),
+                                      text_font=self.title_font,
                                       parent=self.menu_frame)
+        self.title_label.setAntialias(AntialiasAttrib.MAuto)
 
         # Start button
         self.start_button = DirectButton(text="Start Game",
                                         scale=0.1,
                                         pos=(0, 0, -0.2),
                                         command=start_game_callback,
+                                        text_font=self.options_font,
+                                        frameColor=(1, 1, 1, 1),
+                                        text_fg=(0, 0, 0, 1),
+                                        relief='flat',
+                                        borderWidth=(0.01, 0.01),
+                                        pad=(0.4, 0.25),
                                         parent=self.menu_frame)
 
     def create_pause_menu(self, resume_callback, restart_callback, quit_callback):
@@ -47,24 +68,43 @@ class MenuManager:
                     pos=(0, 0, 0.3),
                     text_fg=(1, 1, 1, 1),
                     frameColor=(0, 0, 0, 0),
+                    text_font=self.title_font, # Apply title font
                     parent=self.pause_menu)
 
         DirectButton(text="Resume",
                     scale=0.1,
                     pos=(0, 0, 0),
                     command=resume_callback,
+                    text_font=self.options_font,
+                    frameColor=(1, 1, 1, 1),
+                    text_fg=(0, 0, 0, 1),
+                    relief='flat',
+                    borderWidth=(0.01, 0.01),
+                    pad=(0.4, 0.25),
                     parent=self.pause_menu)
 
         DirectButton(text="Restart",
                     scale=0.1,
                     pos=(0, 0, -0.15),
                     command=restart_callback,
+                    text_font=self.options_font,
+                    frameColor=(1, 1, 1, 1),
+                    text_fg=(0, 0, 0, 1),
+                    relief='flat',
+                    borderWidth=(0.01, 0.01),
+                    pad=(0.4, 0.25),
                     parent=self.pause_menu)
 
         DirectButton(text="Quit",
                     scale=0.1,
                     pos=(0, 0, -0.3),
                     command=quit_callback,
+                    text_font=self.options_font,
+                    frameColor=(1, 1, 1, 1),
+                    text_fg=(0, 0, 0, 1),
+                    relief='flat',
+                    borderWidth=(0.01, 0.01),
+                    pad=(0.4, 0.25),
                     parent=self.pause_menu)
 
     def hide_menu(self):
@@ -112,6 +152,7 @@ class MenuManager:
                     pos=(0, 0, 0.3),
                     text_fg=(1, 0.3, 0.3, 1),  # Red text for game over
                     frameColor=(0, 0, 0, 0),
+                    text_font=self.title_font, # Apply title font
                     parent=self.game_over_menu)
                     
         # Format time as minutes:seconds
@@ -124,6 +165,7 @@ class MenuManager:
                     pos=(0, 0, 0.1),
                     text_fg=(1, 1, 1, 1),
                     frameColor=(0, 0, 0, 0),
+                    text_font=self.options_font, # Apply options font
                     parent=self.game_over_menu)
                     
         # Show reason for game over
@@ -132,12 +174,14 @@ class MenuManager:
                     pos=(0, 0, 0),
                     text_fg=(1, 1, 1, 1),
                     frameColor=(0, 0, 0, 0),
+                    text_font=self.options_font, # Apply options font
                     parent=self.game_over_menu)
 
         DirectButton(text="Restart",
                     scale=0.1,
                     pos=(0, 0, -0.2),
                     command=restart_callback,
+                    text_font=self.options_font, # Apply options font
                     parent=self.game_over_menu)
                     
         self.game_over_menu.hide()
@@ -167,7 +211,8 @@ class MenuManager:
             pos=(0, 0, 0.2), 
             parent=self.game_won_menu, 
             relief=None, 
-            text_fg=(1, 1, 1, 1)
+            text_fg=(1, 1, 1, 1),
+            text_font=self.title_font # Apply title font
         )
         
         DirectLabel(
@@ -176,7 +221,8 @@ class MenuManager:
             pos=(0, 0, 0.05), 
             parent=self.game_won_menu, 
             relief=None, 
-            text_fg=(1, 1, 1, 1)
+            text_fg=(1, 1, 1, 1),
+            text_font=self.options_font # Apply options font
         )
 
         DirectButton(
@@ -185,6 +231,7 @@ class MenuManager:
             pos=(0, 0, -0.15), 
             parent=self.game_won_menu, 
             command=restart_callback, 
+            text_font=self.options_font, # Apply options font
             pressEffect=1
         )
         
@@ -194,6 +241,7 @@ class MenuManager:
             pos=(0, 0, -0.28), 
             parent=self.game_won_menu, 
             command=self.base.state_manager.quit_game, 
+            text_font=self.options_font, # Apply options font
             pressEffect=1
         )
         

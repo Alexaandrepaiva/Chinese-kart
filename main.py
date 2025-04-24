@@ -37,6 +37,9 @@ class KartGame(ShowBase):
     def __init__(self):
         ShowBase.__init__(self)
 
+        # Set explicit near/far clipping planes
+        self.camLens.setNearFar(5, 5000) # Near=5 units, Far=5000 units
+
         # --- Core variables needed by multiple components ---
         # Track game time - managed by GameLoop, but might be needed for display
         self.game_start_time = 0
