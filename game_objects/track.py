@@ -19,39 +19,22 @@ def create_track(game_root):
     segments_per_curve = 30  # Further increased for smoother curves
     world_up = Vec3(0, 0, 1)
 
-    def is_difficult_curve(point):
-        """Determine if a point is in a difficult curve section"""
-        # Define difficult curve regions
-        difficult_regions = [
-            (Point3(20, -20, 0), 50),  # Tight technical curve
-            (Point3(30, 120, 0), 80),  # S-curves section start
-            (Point3(60, 40, 0), 80),   # S-curves section end
-            (Point3(200, -60, 0), 50)  # Sharp curve
-        ]
-        
-        for center, radius in difficult_regions:
-            dist = math.sqrt((point.x - center.x)**2 + (point.y - center.y)**2)
-            if dist < radius:
-                return True
-        return False
-
     # Define the control points for the Catmull-Rom spline.
     # We need points before the start and after the end for the spline calculation.
     # Make the track loop by repeating start/end points appropriately.
     raw_track_points = [
-        Point3(280, -100, 0),    # P0: Start/finish line (bottom of straight)
-        Point3(280, 150, 0),    # P1: End of long straight section
-        Point3(230, 220, 0),    # P2: First corner after straight
-        Point3(150, 240, 0),    # P3: Continuing first curve
-        Point3(80, 200, 0),     # P4: Approaching technical section
-        Point3(30, 120, 0),     # P5: Entry to S-curves
-        Point3(60, 40, 0),      # P6: Middle of S-curves
-        Point3(20, -20, 0),     # P7: Tight technical curve
-        Point3(60, -80, 0),     # P8: Exit of tight curve
-        Point3(140, -100, 0),   # P9: Short straight before final section
+        Point3(250, -120, 0),   # P11: Final corner returning to start
         Point3(200, -60, 0),    # P10: Sharp curve before returning to start
-        Point3(250, -100, 0),   # P11: Final corner returning to start
-        # Point3(280, -100, 0)   # P12 = P0: Back to start
+        Point3(140, -100, 0),   # P9: Short straight before final section
+        Point3(60, -80, 0),     # P8: Exit of tight curve
+        Point3(20, -20, 0),     # P7: Tight technical curve
+        Point3(80, 40, 0),      # P6: Middle of S-curves
+        Point3(30, 120, 0),     # P5: Entry to S-curves
+        Point3(80, 200, 0),     # P4: Approaching technical section
+        Point3(150, 240, 0),    # P3: Continuing first curve
+        Point3(230, 220, 0),    # P2: First corner after straight
+        Point3(280, 150, 0),    # P1: End of long straight section
+        Point3(280, -100, 0),    # P0: Start/finish line (bottom of straight)
     ]
     num_points = len(raw_track_points)
     track_points = []  # This will hold points including wraparound for spline calc
@@ -91,32 +74,27 @@ def create_track(game_root):
             v_road_left = point - binormal * road_width / 2.0
             v_road_right = point + binormal * road_width / 2.0
             
-            # Add warning stripes on difficult curves
-            is_difficult = is_difficult_curve(point)
-            stripe_width = 1.0  # Width of each stripe
-            if is_difficult:
-                # Position stripes on grass margin (outside road edge)
-                v_stripe_left = v_road_left - binormal * stripe_width
-                v_stripe_right = v_road_right + binormal * stripe_width
-                
-                # Alternate between red and white stripes based on position
-                stripe_color = warning_stripe_white if (j % 2 == 0) else warning_stripe_red
-            
-            # Calculate sand border vertices (outer part of the track)
-            v_sand_left = point - binormal * track_width / 2.0
-            v_sand_right = point + binormal * track_width / 2.0
+            # Add stripes to all track sections, not just difficult curves
+            stripe_width = 1.0
+            v_stripe_left = v_road_left - binormal * stripe_width
+            v_stripe_right = v_road_right + binormal * stripe_width
+            stripe_color = warning_stripe_white if (j % 2 == 0) else warning_stripe_red
             
             # Store vertices
             road_vertex_list.append({
                 'left': v_road_left, 
                 'right': v_road_right, 
                 'start_line': is_start_segment,
-                'is_difficult': is_difficult,
-                'stripe_color': stripe_color if is_difficult else None,
-                'stripe_left': v_stripe_left if is_difficult else None,
-                'stripe_right': v_stripe_right if is_difficult else None
+                'stripe_color': stripe_color,
+                'stripe_left': v_stripe_left,
+                'stripe_right': v_stripe_right
             })
             
+            # Calculate sand border vertices (outer part of the track)
+            v_sand_left = point - binormal * track_width / 2.0
+            v_sand_right = point + binormal * track_width / 2.0
+            
+            # Store vertices
             sand_vertex_list.append({
                 'inner_left': v_road_left,
                 'outer_left': v_sand_left,
@@ -139,29 +117,27 @@ def create_track(game_root):
         v_road_left = point - binormal * road_width / 2.0
         v_road_right = point + binormal * road_width / 2.0
         
-        # Sand border vertices
-        v_sand_left = point - binormal * track_width / 2.0
-        v_sand_right = point + binormal * track_width / 2.0
-        
-        # Check if this is a difficult curve point
-        is_difficult = is_difficult_curve(point)
-        if is_difficult:
-            stripe_width = 1.0
-            v_stripe_left = v_road_left - binormal * stripe_width
-            v_stripe_right = v_road_right + binormal * stripe_width
-            stripe_color = warning_stripe_white if (i % 2 == 0) else warning_stripe_red
+        # Add stripes to all track sections, not just difficult curves
+        stripe_width = 1.0
+        v_stripe_left = v_road_left - binormal * stripe_width
+        v_stripe_right = v_road_right + binormal * stripe_width
+        stripe_color = warning_stripe_white if (i % 2 == 0) else warning_stripe_red
         
         # Store vertices
         road_vertex_list.append({
             'left': v_road_left, 
             'right': v_road_right, 
             'start_line': is_start_segment,
-            'is_difficult': is_difficult,
-            'stripe_color': stripe_color if is_difficult else None,
-            'stripe_left': v_stripe_left if is_difficult else None,
-            'stripe_right': v_stripe_right if is_difficult else None
+            'stripe_color': stripe_color,
+            'stripe_left': v_stripe_left,
+            'stripe_right': v_stripe_right
         })
         
+        # Sand border vertices
+        v_sand_left = point - binormal * track_width / 2.0
+        v_sand_right = point + binormal * track_width / 2.0
+        
+        # Store vertices
         sand_vertex_list.append({
             'inner_left': v_road_left,
             'outer_left': v_sand_left,
@@ -237,8 +213,8 @@ def create_track(game_root):
         vdata = GeomVertexData('warning_stripes_geom', format, Geom.UHStatic)
         
         # Count vertices needed (2 vertices per stripe section)
-        num_stripe_vertices = sum(2 for v in road_vertex_list if v.get('is_difficult', False))
-        vdata.setNumRows(num_stripe_vertices)
+        num_stripe_vertices = len(road_vertex_list)
+        vdata.setNumRows(num_stripe_vertices * 2)
         
         vertex = GeomVertexWriter(vdata, 'vertex')
         normal = GeomVertexWriter(vdata, 'normal')
@@ -252,19 +228,18 @@ def create_track(game_root):
             v_info = road_vertex_list[i]
             next_v_info = road_vertex_list[i + 1]
             
-            if v_info.get('is_difficult', False) and next_v_info.get('is_difficult', False):
-                # Left stripe
-                vertex.addData3(v_info['stripe_left'])
-                normal.addData3(world_up)
-                color.addData4(v_info['stripe_color'])
-                
-                # Right stripe
-                vertex.addData3(v_info['stripe_right'])
-                normal.addData3(world_up)
-                color.addData4(v_info['stripe_color'])
-                
-                vertex_indices.append((current_idx, current_idx + 1))
-                current_idx += 2
+            # Left stripe
+            vertex.addData3(v_info['stripe_left'])
+            normal.addData3(world_up)
+            color.addData4(v_info['stripe_color'])
+            
+            # Right stripe
+            vertex.addData3(v_info['stripe_right'])
+            normal.addData3(world_up)
+            color.addData4(v_info['stripe_color'])
+            
+            vertex_indices.append((current_idx, current_idx + 1))
+            current_idx += 2
         
         tris = GeomTriangles(Geom.UHStatic)
         
@@ -301,26 +276,30 @@ def create_track(game_root):
         
         for i in range(num_vertices):
             v_info = road_vertex_list[i]
-            col = start_line_color if v_info['start_line'] else track_color
-            # Left vertex
+            
+            # Left edge - use regular track color for all sections
             vertex.addData3(v_info['left'])
             normal.addData3(world_up)
-            color.addData4(col)
-            # Right vertex
+            color.addData4(track_color)
+            
+            # Right edge - use regular track color for all sections
             vertex.addData3(v_info['right'])
             normal.addData3(world_up)
-            color.addData4(col)
+            color.addData4(track_color)
         
         tris = GeomTriangles(Geom.UHStatic)
-        # Add triangles connecting consecutive vertices
+        
+        # Create triangles connecting each segment
         for i in range(num_vertices - 1):
             idx = i * 2
-            # Triangle 1: (left_i, right_i, left_{i+1})
+            
+            # First triangle (left_i, right_i, left_{i+1})
             tris.addVertices(idx, idx + 1, idx + 2)
-            # Triangle 2: (right_i, right_{i+1}, left_{i+1})
+            
+            # Second triangle (right_i, right_{i+1}, left_{i+1})
             tris.addVertices(idx + 1, idx + 3, idx + 2)
-        tris.closePrimitive()
         
+        tris.closePrimitive()
         geom = Geom(vdata)
         geom.addPrimitive(tris)
         
