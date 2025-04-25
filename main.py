@@ -74,7 +74,17 @@ class KartGame(ShowBase):
         # Create the starting line
         self.starting_line = create_starting_line(self.gameRoot, self.trackCurvePoints)
 
-        self.kart = create_kart(self.gameRoot, self.loader)
+        self.kart, self.kart_collider = create_kart(self.gameRoot, self.loader)
+
+        # --- Collision Traverser and Handler ---
+        from panda3d.core import CollisionTraverser
+        from panda3d.core import CollisionHandlerEvent
+        self.cTrav = CollisionTraverser()
+        self.collision_handler = CollisionHandlerEvent()
+        self.collision_handler.add_in_pattern('%fn-into-%in')
+        self.cTrav.add_collider(self.kart_collider, self.collision_handler)
+        # Listen for kart into barrier event
+        self.accept('kart_collision-into-barrier_collision', self.on_kart_barrier_collision)
 
         # --- Core Components Initialization ---
         self.physics = KartPhysics(self.kart)
@@ -96,6 +106,16 @@ class KartGame(ShowBase):
         # --- Initial State ---
         self.state_manager.show_menu() # Start by showing the menu
         # print("Game Initialized.") # State manager handles prints
+
+    # --- Collision: Stop kart on barrier ---
+    def on_kart_barrier_collision(self, entry):
+        # Stop the kart instantly
+        self.physics.velocity = 0
+        # Optionally, move the kart slightly back to prevent sticking
+        from panda3d.core import Vec3
+        backward = -self.kart.getQuat().getForward() * 0.5
+        pos = self.kart.getPos() + Vec3(backward.x, backward.y, 0)
+        self.kart.setPos(pos)
 
     # The core game update task - delegates based on state
     def updateGame(self, task):

@@ -1,4 +1,4 @@
-from panda3d.core import CardMaker, Vec4
+from panda3d.core import CardMaker, Vec4, CollisionNode, CollisionBox, Point3
 
 def create_kart(game_root, loader):
     """
@@ -31,5 +31,13 @@ def create_kart(game_root, loader):
     
     # --- Rotate the kart 180 degrees to align its visual front with +Y ---
     kart.setH(180)
-    
-    return kart
+
+    # --- Attach a collision box to the kart ---
+    cnode = CollisionNode('kart_collision')
+    cbox = CollisionBox(Point3(0, 0, 0.5), 0.6, 0.6, 0.5)  # Centered, fits default kart size
+    cnode.add_solid(cbox)
+    cnode.set_from_collide_mask(0x1)  # Matches barrier's into mask
+    cnode.set_into_collide_mask(0)
+    collider = kart.attach_new_node(cnode)
+
+    return kart, collider
