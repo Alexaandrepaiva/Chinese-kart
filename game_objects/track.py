@@ -1,6 +1,7 @@
 from panda3d.core import Point3, Vec3, Vec4, GeomVertexFormat, GeomVertexData, GeomVertexWriter, Geom, GeomTriangles, GeomNode, LineSegs, NodePath
 import math
 from utils.spline import eval_catmull_rom, tangent_catmull_rom
+from game_objects.barrier_block import BarrierBlock  # Import BarrierBlock
 
 def create_track(game_root):
     """
@@ -47,6 +48,8 @@ def create_track(game_root):
     track_curve_points = []  # Store centerline points for kart positioning
     road_vertex_list = []  # Stores vertices for the road surface
     sand_vertex_list = []  # Stores vertices for the sand borders
+
+    # We'll place the barrier after generating the track_curve_points
 
     for i in range(1, num_points + 1):
         p0 = track_points[i - 1]
@@ -145,6 +148,65 @@ def create_track(game_root):
             'outer_right': v_sand_right
         })
         # Don't add final centerline point here, it's the start of the next segment
+
+    # --- Place a sequence of Barrier Blocks along the inside ground ---
+    if len(track_curve_points) > 0:
+        barrier_length = 4.0  # Length of each barrier
+        barrier_depth = 1.0   # Depth (thickness)
+        barrier_height = 2.0
+        spacing = 0.001         # No gap between barriers
+        arc_step = barrier_length + spacing
+        # Calculate arc-lengths for the curve
+        arc_lengths = [0.0]
+        for i in range(1, len(track_curve_points)):
+            arc_lengths.append(arc_lengths[-1] + (track_curve_points[i] - track_curve_points[i-1]).length())
+        total_length = arc_lengths[-1]
+        # Place barriers at constant arc-length intervals, skipping first/last few
+        barrier_positions = []
+        t = 0.0
+        while t < total_length:
+            # Find segment index for this arc-length
+            for i in range(1, len(arc_lengths)):
+                if arc_lengths[i] >= t:
+                    break
+            else:
+                break
+            # Interpolate between points i-1 and i
+            seg_len = arc_lengths[i] - arc_lengths[i-1]
+            if seg_len == 0:
+                alpha = 0
+            else:
+                alpha = (t - arc_lengths[i-1]) / seg_len
+            pos = track_curve_points[i-1] * (1-alpha) + track_curve_points[i] * alpha
+            # Compute tangent and binormal
+            tangent = track_curve_points[i] - track_curve_points[i-1]
+            tangent_2d = Vec3(tangent.x, tangent.y, 0)
+            tangent_2d.normalize()
+            perp = Vec3(-tangent_2d.y, tangent_2d.x, 0)
+            perp.normalize()
+            heading = math.degrees(math.atan2(-perp.x, perp.y))
+            inner_offset = (road_width / 2.0) + (barrier_depth / 2.0) + 4.2
+            barrier_pos = pos - perp * inner_offset
+            barrier_positions.append((barrier_pos, heading))
+            t += arc_step
+        # Remove some barriers to hide contour details
+        barrier_positions = barrier_positions[0:-8]
+        # Get starting line position for exclusion
+        starting_line_pos = track_curve_points[0]
+        skip_radius = 8.0
+        for barrier_pos, heading in barrier_positions:
+            if (barrier_pos - starting_line_pos).length() < skip_radius:
+                continue
+            b = BarrierBlock(
+                track_node,
+                (barrier_pos.x, barrier_pos.y, barrier_pos.z + barrier_height / 2),
+                size=(barrier_length, barrier_depth, barrier_height),
+                hpr=(heading, 0, 0),
+                face_color=(0.32, 0.23, 0.13, 1),  # brown
+                border_color=(0, 0, 0, 1)          # black
+            )
+
+        # The barriers now form a continuous fence on the inside lawn
 
     # --- Create Sand Border Geometry ---
     def create_border_geometry():
