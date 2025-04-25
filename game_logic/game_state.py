@@ -24,7 +24,7 @@ class GameStateManager:
         self.app.menu_manager.show_menu()
         self.app.gameRoot.hide()
         self.app.minimap.hide()
-        self.app.speed_display.hide()
+        self.app.hud_display.hide()
         self.app.taskMgr.remove("updateGameTask") # Stop game loop when in menu
 
     def start_game(self):
@@ -47,10 +47,15 @@ class GameStateManager:
             self.app.lawn_timer = 0
             self.app.progress_tracker.reset()
 
+            # --- TIMER RESET ---
+            self.app.run_timer = False
+            self.app.timer_start_time = None
+            self.app.timer_elapsed = 0.0
+
             # Show game elements
             self.app.gameRoot.show()
             self.app.minimap.show()
-            self.app.speed_display.show()
+            self.app.hud_display.show()
 
             # --- Kart Starting Position ---
             start_pos = self.app.trackCurvePoints[0]
@@ -88,7 +93,7 @@ class GameStateManager:
             print("Game Paused")
             self.show_pause_menu()
             self.app.minimap.hide()
-            self.app.speed_display.hide()
+            self.app.hud_display.hide()
             # The update task continues but checks the state
 
     def show_pause_menu(self):
@@ -106,7 +111,7 @@ class GameStateManager:
             self.change_state('playing')
             self.app.menu_manager.hide_pause_menu()
             self.app.minimap.show()
-            self.app.speed_display.show()
+            self.app.hud_display.show()
             print("Game Resumed")
 
     def restart_game_from_pause(self):
@@ -127,7 +132,7 @@ class GameStateManager:
 
             # Hide game elements
             self.app.minimap.hide()
-            self.app.speed_display.hide()
+            self.app.hud_display.hide()
 
             # Create and show game over menu
             self.app.menu_manager.create_game_over_menu(
@@ -146,7 +151,7 @@ class GameStateManager:
 
             # Hide game elements
             self.app.minimap.hide()
-            self.app.speed_display.hide()
+            self.app.hud_display.hide()
 
             # Create and show game won menu
             self.app.menu_manager.create_game_won_menu(

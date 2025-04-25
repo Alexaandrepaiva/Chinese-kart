@@ -307,16 +307,183 @@ def create_track(game_root):
         node.addGeom(geom)
         return node
     
+    # --- Create Starting Line Geometry ---
+    def create_starting_line_geometry():
+        format = GeomVertexFormat.getV3n3c4()  # Vertex, Normal, Color
+        vdata = GeomVertexData('starting_line_geom', format, Geom.UHStatic)
+        
+        # Get the first segment of the track to position the starting line
+        start_point = track_curve_points[0]
+        next_point = track_curve_points[1]
+        
+        # Calculate direction and perpendicular vector
+        direction = (next_point - start_point)
+        direction.normalize()
+        perpendicular = direction.cross(world_up)
+        perpendicular.normalize()
+        
+        # Calculate the left and right edges of the road at the starting point
+        left_edge = start_point - perpendicular * (road_width / 2.0)
+        right_edge = start_point + perpendicular * (road_width / 2.0)
+        
+        # Number of squares for the checkered pattern - reduced for larger squares
+        num_squares = 4  # Fewer squares means larger checkered pattern
+        
+        # Starting line width (along track direction)
+        start_line_width = 6.0  # Significantly increased for better visibility
+        
+        # Colors for the checkered pattern - made more contrasting
+        white_color = Vec4(1.0, 1.0, 1.0, 1.0)  # Pure white
+        black_color = Vec4(0.0, 0.0, 0.0, 1.0)  # Pure black
+        red_color = Vec4(1.0, 0.0, 0.0, 1.0)    # Bright red for border
+        
+        # Create main checkered pattern
+        main_vdata = GeomVertexData('starting_line_main_geom', format, Geom.UHStatic)
+        num_vertices = (num_squares + 1) * 2  # +1 for the extra point at the end
+        main_vdata.setNumRows(num_vertices)
+        
+        vertex = GeomVertexWriter(main_vdata, 'vertex')
+        normal = GeomVertexWriter(main_vdata, 'normal')
+        color = GeomVertexWriter(main_vdata, 'color')
+        
+        # Create vertices along the starting line
+        for i in range(num_squares + 1):
+            # Calculate position along the starting line
+            t = float(i) / num_squares
+            pos = left_edge + (right_edge - left_edge) * t
+            
+            # Determine color for this square
+            square_color = white_color if (i // 1) % 2 == 0 else black_color
+            
+            # Add vertices for the front and back of the starting line
+            # Front vertex (in the direction of the track)
+            vertex.addData3(pos + direction * start_line_width/2)  # Extend forward
+            normal.addData3(world_up)
+            color.addData4(square_color)
+            
+            # Back vertex
+            vertex.addData3(pos - direction * start_line_width/2)  # Extend backward
+            normal.addData3(world_up)
+            color.addData4(square_color)
+        
+        # Create triangles for the checkered pattern
+        tris = GeomTriangles(Geom.UHStatic)
+        
+        for i in range(num_squares):
+            idx = i * 2
+            
+            # First triangle (front-left, back-left, front-right)
+            tris.addVertices(idx, idx + 1, idx + 2)
+            
+            # Second triangle (back-left, back-right, front-right)
+            tris.addVertices(idx + 1, idx + 3, idx + 2)
+        
+        tris.closePrimitive()
+        main_geom = Geom(main_vdata)
+        main_geom.addPrimitive(tris)
+        
+        # Create a red border around the starting line
+        border_width = 1.0  # Width of the border
+        border_vdata = GeomVertexData('starting_line_border_geom', format, Geom.UHStatic)
+        
+        # We need 8 vertices for the border (4 corners, each with front and back points)
+        border_vdata.setNumRows(8)
+        
+        vertex = GeomVertexWriter(border_vdata, 'vertex')
+        normal = GeomVertexWriter(border_vdata, 'normal')
+        color = GeomVertexWriter(border_vdata, 'color')
+        
+        # Calculate the extended edges for the border
+        left_border = left_edge - perpendicular * border_width
+        right_border = right_edge + perpendicular * border_width
+        front_border = direction * (start_line_width/2 + border_width)
+        back_border = direction * -(start_line_width/2 + border_width)
+        
+        # Add the 8 vertices for the border
+        # Front-left outer corner
+        vertex.addData3(left_border + front_border)
+        normal.addData3(world_up)
+        color.addData4(red_color)
+        
+        # Back-left outer corner
+        vertex.addData3(left_border + back_border)
+        normal.addData3(world_up)
+        color.addData4(red_color)
+        
+        # Front-right outer corner
+        vertex.addData3(right_border + front_border)
+        normal.addData3(world_up)
+        color.addData4(red_color)
+        
+        # Back-right outer corner
+        vertex.addData3(right_border + back_border)
+        normal.addData3(world_up)
+        color.addData4(red_color)
+        
+        # Front-left inner corner
+        vertex.addData3(left_edge + direction * start_line_width/2)
+        normal.addData3(world_up)
+        color.addData4(red_color)
+        
+        # Back-left inner corner
+        vertex.addData3(left_edge - direction * start_line_width/2)
+        normal.addData3(world_up)
+        color.addData4(red_color)
+        
+        # Front-right inner corner
+        vertex.addData3(right_edge + direction * start_line_width/2)
+        normal.addData3(world_up)
+        color.addData4(red_color)
+        
+        # Back-right inner corner
+        vertex.addData3(right_edge - direction * start_line_width/2)
+        normal.addData3(world_up)
+        color.addData4(red_color)
+        
+        # Create triangles for the border
+        border_tris = GeomTriangles(Geom.UHStatic)
+        
+        # Left side (2 triangles)
+        border_tris.addVertices(0, 1, 4)  # outer front-left, outer back-left, inner front-left
+        border_tris.addVertices(1, 5, 4)  # outer back-left, inner back-left, inner front-left
+        
+        # Right side (2 triangles)
+        border_tris.addVertices(2, 3, 6)  # outer front-right, outer back-right, inner front-right
+        border_tris.addVertices(3, 7, 6)  # outer back-right, inner back-right, inner front-right
+        
+        # Front side (2 triangles)
+        border_tris.addVertices(0, 2, 4)  # outer front-left, outer front-right, inner front-left
+        border_tris.addVertices(2, 6, 4)  # outer front-right, inner front-right, inner front-left
+        
+        # Back side (2 triangles)
+        border_tris.addVertices(1, 3, 5)  # outer back-left, outer back-right, inner back-left
+        border_tris.addVertices(3, 7, 5)  # outer back-right, inner back-right, inner back-left
+        
+        border_tris.closePrimitive()
+        border_geom = Geom(border_vdata)
+        border_geom.addPrimitive(border_tris)
+        
+        # Create the final node with both geometries
+        node = GeomNode('starting_line_geom_node')
+        node.addGeom(border_geom)  # Add border first (will be rendered first)
+        node.addGeom(main_geom)    # Add main checkered pattern on top
+        return node
+    
     # Create and attach geometries
     # sand_border_node = create_border_geometry()  # Sand borders removed
     road_node = create_road_geometry()
     warning_stripes_node = create_warning_stripes_geometry()
+    starting_line_node = create_starting_line_geometry()
     
     # The track_node is the parent for the road and warning stripes
     # track_node.attachNewNode(sand_border_node)  # Sand borders removed
     warning_stripes_np = track_node.attachNewNode(warning_stripes_node)
     warning_stripes_np.setZ(-0.01)  # Slightly below the road so track appears on top
     track_node.attachNewNode(road_node)
+    
+    # Add the starting line significantly above the track to avoid z-fighting and improve visibility
+    starting_line_np = track_node.attachNewNode(starting_line_node)
+    starting_line_np.setZ(0.05)  # Raised higher above the road for better visibility
     
     # Ensure track is at Z=0
     track_node.setPos(0, 0, 0)
