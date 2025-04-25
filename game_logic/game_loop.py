@@ -11,7 +11,23 @@ class GameLoop:
         # This method is called by the task manager ONLY when state is 'playing'
         dt = globalClock.getDt()
 
-        # Update total game time
+        # --- TIMER LOGIC ---
+        # Start timer when kart first moves (velocity > 0.1 and timer not started)
+        if not hasattr(self.app, 'run_timer'):  # Initialize if not present
+            self.app.run_timer = False
+            self.app.timer_start_time = None
+            self.app.timer_elapsed = 0.0
+
+        if not self.app.run_timer and abs(self.app.physics.velocity) > 0.1:
+            self.app.run_timer = True
+            self.app.timer_start_time = time.time()
+            self.app.timer_elapsed = 0.0
+
+        # Update timer if running
+        if self.app.run_timer:
+            self.app.timer_elapsed = time.time() - self.app.timer_start_time
+        
+        # Update total game time (legacy, may be used elsewhere)
         self.app.game_time = time.time() - self.app.game_start_time
 
         # Update physics
@@ -24,6 +40,7 @@ class GameLoop:
             self.app.lawn_timer += dt
             if self.app.lawn_timer >= self.MAX_LAWN_TIME:
                 self.app.state_manager.game_over("Player spent too much time on the lawn.")
+                self.app.run_timer = False  # Stop timer
                 return Task.done # Stop the loop
         else:
             self.app.lawn_timer = 0 # Reset timer
@@ -32,12 +49,13 @@ class GameLoop:
         lap_just_completed = self.app.progress_tracker.update()
         if lap_just_completed:
              self.app.state_manager.game_won()
+             self.app.run_timer = False  # Stop timer
              return Task.done # Stop the loop
 
         # Update camera
         update_camera(self.app.cam, self.app.kart, dt)
 
-        # Update speed display
-        self.app.speed_display.update(self.app.physics.velocity)
+        # Update speed and timer display
+        self.app.hud_display.update(self.app.physics.velocity, self.app.timer_elapsed if self.app.run_timer else 0.0)
 
         return Task.cont # Continue task next frame

@@ -19,6 +19,7 @@ from utils.lighting import setup_lighting
 from game_objects.ground import create_ground
 from game_objects.track import create_track
 from game_objects.kart import create_kart
+from game_objects.starting_line import create_starting_line
 
 # Import physics
 from physics.kart_physics import KartPhysics
@@ -26,7 +27,7 @@ from physics.kart_physics import KartPhysics
 # Import UI
 from ui.menus import MenuManager
 from ui.minimap import Minimap
-from ui.speed_display import SpeedDisplay
+from ui.hud_display import HUDDisplay
 
 # Import new game logic components
 from game_logic.game_state import GameStateManager
@@ -69,6 +70,9 @@ class KartGame(ShowBase):
         self.track = track_data[0]
         self.trackCurvePoints = track_data[1]
         # self.trackPoints = track_data[2] # Currently unused? Remove if not needed
+        
+        # Create the starting line
+        self.starting_line = create_starting_line(self.gameRoot, self.trackCurvePoints)
 
         self.kart = create_kart(self.gameRoot, self.loader)
 
@@ -83,7 +87,7 @@ class KartGame(ShowBase):
         self.menu_manager.create_start_menu(self.state_manager.start_game) # Use state manager
 
         self.minimap = Minimap(self, self.trackCurvePoints, self.kart)
-        self.speed_display = SpeedDisplay(self)
+        self.hud_display = HUDDisplay(self)
 
         # --- Input Handling ---
         self.physics.setup_controls(self.accept)
