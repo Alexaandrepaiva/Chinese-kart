@@ -49,9 +49,6 @@ def create_starting_line(game_root, track_curve_points):
     starting_line_node.setPos(start_point)
     starting_line_node.setZ(0.1)  # Slightly above the track
 
-    # Place a tree at the starting line (vertically aligned)
-    tree = create_tree(start_point)
-    tree.reparentTo(game_root)
 
     # Orient the card to be perpendicular to the track direction
     # The card's default orientation is facing up (Z+)
