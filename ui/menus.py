@@ -230,6 +230,7 @@ class MenuManager:
             text_font=self.options_font # Apply options font
         )
 
+        # Play Again button: calls restart_callback (should be state_manager.start_game, which resets timer, speed, and progress)
         DirectButton(
             text="Play Again",
             scale=0.1, 
