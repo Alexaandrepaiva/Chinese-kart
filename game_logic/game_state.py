@@ -76,6 +76,10 @@ class GameStateManager:
             self.app.cam.lookAt(self.app.kart.getPos() + Vec3(0, 0, 2))
             setup_camera_transition(self.app.cam, self.app.kart)
 
+            # --- Block input and wait for camera transition ---
+            self.app.block_input()
+            self.app.waiting_for_camera_transition = True
+
             # Start the game update task if not already running
             if not self.app.taskMgr.hasTaskNamed("updateGameTask"):
                  self.app.taskMgr.add(self.app.updateGame, "updateGameTask")

@@ -28,6 +28,7 @@ from physics.kart_physics import KartPhysics
 from ui.menus import MenuManager
 from ui.minimap import Minimap
 from ui.hud_display import HUDDisplay
+from ui.start_countdown import StartCountdown
 
 # Import new game logic components
 from game_logic.game_state import GameStateManager
@@ -99,6 +100,11 @@ class KartGame(ShowBase):
         self.minimap = Minimap(self, self.trackCurvePoints, self.kart)
         self.hud_display = HUDDisplay(self)
 
+        # --- Countdown (block input until done) ---
+        self.input_blocked = False
+        self.waiting_for_camera_transition = False
+        self.countdown = StartCountdown(self, on_finish=self._on_countdown_finish)
+
         # --- Input Handling ---
         self.physics.setup_controls(self.accept)
         self.accept("escape", self.state_manager.toggle_pause) # Use state manager
@@ -106,6 +112,21 @@ class KartGame(ShowBase):
         # --- Initial State ---
         self.state_manager.show_menu() # Start by showing the menu
         # print("Game Initialized.") # State manager handles prints
+
+    def block_input(self):
+        self.input_blocked = True
+        self.physics.reset()  # Make sure no movement
+        self.countdown.text.hide()  # Hide countdown if blocking input for camera
+
+    def unblock_input(self):
+        self.input_blocked = False
+
+    def _on_countdown_finish(self):
+        self.unblock_input()
+        self.run_timer = True
+        self.timer_start_time = time.time()
+        self.timer_elapsed = 0.0
+
 
     # --- Collision: Stop kart on barrier ---
     def on_kart_barrier_collision(self, entry):
@@ -122,11 +143,26 @@ class KartGame(ShowBase):
         """
         Main task loop. Checks the current game state and calls the appropriate update logic.
         """
+        from utils.camera import update_camera
+        update_camera(self.cam, self.kart)
+
         if self.state_manager.is_state('playing'):
-            # If playing, delegate to the GameLoop's update method
+            # If waiting for camera transition, poll is_transitioning
+            if self.waiting_for_camera_transition:
+                from utils import camera as camera_utils
+                if not camera_utils.is_transitioning:
+                    self.waiting_for_camera_transition = False
+                    self.countdown.show_countdown()
+                self.physics.reset()
+                return Task.cont
+            if self.input_blocked:
+                # Block all movement by resetting physics and skipping update
+                self.physics.reset()
+                return Task.cont
+            # If playing and input is allowed, delegate to the GameLoop's update method
             return self.game_loop.update(task)
         else:
-            # If paused, menu, game_over, or game_won, just continue the task
+            # If paused, menu, game_over, game_won, just continue the task
             # without running game logic. This prevents dt issues on resume.
             # The GameStateManager handles starting/stopping this task appropriately.
             return Task.cont
