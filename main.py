@@ -76,6 +76,11 @@ class KartGame(ShowBase):
         self.starting_line = create_starting_line(self.gameRoot, self.trackCurvePoints)
 
         self.kart, self.kart_collider = create_kart(self.gameRoot, self.loader)
+        # --- Kart Position Logging for Object Placement ---
+        # This is useful for placing new objects at the given position
+        # Uncomment both lines above to use it
+        # from utils.object_placement import log_kart_position_every_second
+        # log_kart_position_every_second(self.kart)
 
         # --- Collision Traverser and Handler ---
         from panda3d.core import CollisionTraverser

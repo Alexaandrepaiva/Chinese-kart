@@ -560,6 +560,7 @@ def create_track(game_root):
         start_point = track_curve_points[0]
         tree = create_tree(start_point + Vec3(40, 10, 0))
         tree = create_tree(start_point + Vec3(10, 10, 0))
+        tree = create_tree(Vec3(273.61, -136.40, 0.50))
         tree.reparentTo(game_root)
 
     return track_node, track_curve_points, track_points
