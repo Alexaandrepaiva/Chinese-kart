@@ -3,6 +3,7 @@ import math
 from utils.spline import eval_catmull_rom, tangent_catmull_rom
 from game_objects.barrier_block import BarrierBlock  # Import BarrierBlock
 from game_objects.tree import create_tree
+from game_objects.building import create_building
 
 def create_track(game_root):
     """
@@ -556,12 +557,12 @@ def create_track(game_root):
     track_node.setPos(0, 0, 0)
 
     # --- Place a tree at the starting line ---
-    if track_curve_points:
-        start_point = track_curve_points[0]
-        tree = create_tree(start_point + Vec3(40, 10, 0))
-        tree = create_tree(start_point + Vec3(10, 10, 0))
-        tree = create_tree(Vec3(273.61, -136.40, 0.50))
-        tree.reparentTo(game_root)
+    tree = create_tree( Vec3(273.61, -136.40, 0.50))
+    tree = create_tree( Vec3(296.24, 40.10, 0.50))
+    tree = create_tree( Vec3(284.63, 169.95, 0.50))
+    tree = create_tree( Vec3(52.04, 187.09, 0.50))
+
+    building = create_building(Vec3(294.69, -107.00, 0.50))
 
     return track_node, track_curve_points, track_points
 

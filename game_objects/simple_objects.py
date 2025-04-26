@@ -23,7 +23,7 @@ def create_cylinder(pos, direction, color, radius, height):
 
 def create_sphere(pos, direction, color, radius):
     """Create a sphere at pos, facing direction, with color and radius"""
-    sphere = loader.loadModel('models/smiley')
+    sphere = loader.loadModel('models/misc/sphere')
     sphere.setScale(radius)
     sphere.setPos(pos)
     # Spheres are symmetric, so direction doesn't matter
