@@ -8,11 +8,13 @@ class ProgressTracker:
         self.kart_progress = 0.0
         self.max_progress_reached = 0.0
         self.lap_completed = False
+        self.has_left_start_line = False  # New: flag for leaving the start area after race start
 
     def reset(self):
         self.kart_progress = 0.0
         self.max_progress_reached = 0.0
         self.lap_completed = False
+        self.has_left_start_line = False
 
     def _point_segment_distance_sq(self, p, a, b):
         """Calculate the squared distance from point p to line segment (a, b)."""
@@ -56,9 +58,17 @@ class ProgressTracker:
         self.kart_progress = self.calculate_kart_progress()
         self.max_progress_reached = max(self.max_progress_reached, self.kart_progress)
 
-        # Check for lap completion
-        crossed_start_line_forward = self.kart_progress < 0.05 and previous_progress > 0.95
-        if crossed_start_line_forward and self.max_progress_reached > 0.90:
+        # Lap logic: require kart to leave the start area before a lap can be completed
+        crossed_start_line_backward = self.kart_progress > 0.95 and previous_progress < 0.05
+        left_start_area = self.kart_progress > 0.10 or previous_progress > 0.10
+
+        if not self.has_left_start_line:
+            # Wait until the kart has left the start area (progress > 0.10)
+            if left_start_area:
+                self.has_left_start_line = True
+            return False
+
+        if crossed_start_line_backward and self.max_progress_reached > 0.90 and self.has_left_start_line:
             if not self.lap_completed:
                 self.lap_completed = True
                 return True # Lap completed this frame

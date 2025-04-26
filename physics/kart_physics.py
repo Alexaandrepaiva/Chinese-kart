@@ -21,6 +21,7 @@ class KartPhysics:
         
         # Terrain-specific factors
         self.current_terrain = 'road'  # Current terrain: 'road', 'sand', or 'lawn'
+        self.previous_terrain = 'road'  # Track previous terrain for transitions
         self.terrain_factors = {
             'road': {
                 'speed': 1.0,       # No speed reduction on road
@@ -38,6 +39,9 @@ class KartPhysics:
                 'friction': 1.5      # 50% more friction on lawn
             }
         }
+        # For smooth deceleration on terrain change
+        self.lawn_deceleration_rate = 80.0  # units per second^2 (tune as needed)
+        self.slowing_down_on_lawn = False
         
         # For display purposes
         self.terrain_colors = {
@@ -65,7 +69,7 @@ class KartPhysics:
         """
         self.key_map[key] = value
 
-    def update(self, dt, track_z=0, track_curve_points=None, road_width=10.0, track_width=20.0):
+    def update(self, dt, track_z=0, track_curve_points=None, road_width=10.0, track_width=20.0, stripe_width=1.0):
         """
         Update kart physics based on current controls and time delta
         """
@@ -77,10 +81,32 @@ class KartPhysics:
         # Check what terrain the kart is on
         if track_curve_points:
             kart_pos = self.kart.getPos()
-            self.current_terrain = get_kart_terrain(kart_pos, track_curve_points, road_width, track_width)
+            self.current_terrain = get_kart_terrain(kart_pos, track_curve_points, road_width, track_width, stripe_width)
         else:
             self.current_terrain = 'road'  # Default to road if no track data provided
 
+        # --- Smooth deceleration when entering lawn ---
+        # Get max allowed velocity for current terrain
+        max_velocity_factor = self.terrain_factors[self.current_terrain]['speed']
+        max_allowed_velocity = self.max_velocity * max_velocity_factor
+        
+        if self.current_terrain == 'lawn' and self.velocity > max_allowed_velocity:
+            # Apply strong deceleration until reaching max lawn speed
+            self.slowing_down_on_lawn = True
+        if self.slowing_down_on_lawn:
+            if self.velocity > max_allowed_velocity:
+                self.velocity -= self.lawn_deceleration_rate * dt
+                if self.velocity < max_allowed_velocity:
+                    self.velocity = max_allowed_velocity
+            else:
+                self.slowing_down_on_lawn = False
+        
+        # Track terrain transitions
+        if self.current_terrain != self.previous_terrain:
+            if self.current_terrain != 'lawn':
+                self.slowing_down_on_lawn = False
+            self.previous_terrain = self.current_terrain
+        
         current_heading = self.kart.getH()
 
         # Get terrain-specific factors

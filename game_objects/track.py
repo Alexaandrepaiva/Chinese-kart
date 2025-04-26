@@ -2,6 +2,8 @@ from panda3d.core import Point3, Vec3, Vec4, GeomVertexFormat, GeomVertexData, G
 import math
 from utils.spline import eval_catmull_rom, tangent_catmull_rom
 from game_objects.barrier_block import BarrierBlock  # Import BarrierBlock
+from game_objects.tree import create_tree
+from game_objects.building import create_building
 
 def create_track(game_root):
     """
@@ -50,6 +52,10 @@ def create_track(game_root):
     sand_vertex_list = []  # Stores vertices for the sand borders
 
     # We'll place the barrier after generating the track_curve_points
+
+    # --- Place a tree at the starting line ---
+    # The starting line is at the first point of the track_curve_points (after generation)
+    # We'll add the tree after generating the track_curve_points below, before returning
 
     for i in range(1, num_points + 1):
         p0 = track_points[i - 1]
@@ -549,6 +555,14 @@ def create_track(game_root):
     
     # Ensure track is at Z=0
     track_node.setPos(0, 0, 0)
+
+    # --- Place a tree at the starting line ---
+    tree = create_tree( Vec3(273.61, -136.40, 0.50))
+    tree = create_tree( Vec3(296.24, 40.10, 0.50))
+    tree = create_tree( Vec3(284.63, 169.95, 0.50))
+    tree = create_tree( Vec3(52.04, 187.09, 0.50))
+
+    building = create_building(Vec3(294.69, -107.00, 0.50))
 
     return track_node, track_curve_points, track_points
 

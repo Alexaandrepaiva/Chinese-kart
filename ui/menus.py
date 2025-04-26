@@ -181,7 +181,12 @@ class MenuManager:
                     scale=0.1,
                     pos=(0, 0, -0.2),
                     command=restart_callback,
-                    text_font=self.options_font, # Apply options font
+                    text_font=self.options_font,
+                    frameColor=(1, 1, 1, 1),
+                    text_fg=(0, 0, 0, 1),
+                    relief='flat',
+                    borderWidth=(0.01, 0.01),
+                    pad=(0.4, 0.25),
                     parent=self.game_over_menu)
                     
         self.game_over_menu.hide()
@@ -225,36 +230,42 @@ class MenuManager:
             text_font=self.options_font # Apply options font
         )
 
+        # Play Again button: calls restart_callback (should be state_manager.start_game, which resets timer, speed, and progress)
         DirectButton(
             text="Play Again",
-            scale=0.07, 
+            scale=0.1, 
             pos=(0, 0, -0.15), 
             parent=self.game_won_menu, 
             command=restart_callback, 
-            text_font=self.options_font, # Apply options font
-            pressEffect=1
+            text_font=self.options_font,
+            frameColor=(1, 1, 1, 1),
+            text_fg=(0, 0, 0, 1),
+            relief='flat',
+            borderWidth=(0.01, 0.01),
+            pad=(0.4, 0.25)
         )
-        
         DirectButton(
             text="Quit",
-            scale=0.07, 
-            pos=(0, 0, -0.28), 
+            scale=0.1, 
+            pos=(0, 0, -0.32), 
             parent=self.game_won_menu, 
             command=self.base.state_manager.quit_game, 
-            text_font=self.options_font, # Apply options font
-            pressEffect=1
+            text_font=self.options_font,
+            frameColor=(1, 1, 1, 1),
+            text_fg=(0, 0, 0, 1),
+            relief='flat',
+            borderWidth=(0.01, 0.01),
+            pad=(0.4, 0.25)
         )
-        
         self.game_won_menu.hide()
-        
+
     def show_game_won_menu(self):
         if hasattr(self, 'game_won_menu') and self.game_won_menu:
             self.game_won_menu.show()
-            
+
     def hide_game_won_menu(self):
         if hasattr(self, 'game_won_menu') and self.game_won_menu:
             self.game_won_menu.hide()
-    # ---------------------
 
     def hide_menu(self):
         """
