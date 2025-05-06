@@ -133,12 +133,10 @@ class GameStateManager:
             
             # Use AI colors from the configuration 
             # If we have more AI karts than colors, we'll cycle through the available colors
-            spacing = 2.0 # Spacing between karts
+            spacing = 3.0 # Increased spacing between karts for better starting positions
             
-            # Stagger AI karts slightly and place them side-by-side
-            # Total width for AI karts lineup
-            total_lineup_width = (num_ai_karts -1) * spacing
-            
+            # Karts will be positioned in a grid-like formation, with none directly behind the player
+            # Calculate positions differently to avoid center spot (player position)
             for i in range(num_ai_karts):
                 # Get color for this AI kart
                 ai_color = ai_colors[i % len(ai_colors)]
@@ -147,10 +145,19 @@ class GameStateManager:
                 ai_kart_node, ai_collider = create_kart(self.app.gameRoot, self.app.loader, color=ai_color)
                 
                 # Position AI karts
-                # Offset from the center of the lineup
-                lateral_offset = (i - (num_ai_karts - 1) / 2.0) * spacing
-                ai_start_offset_forward = track_forward_dir * (-2 - (i * 0.5)) # Stagger them slightly behind each other
+                # Determine the row and column for a grid-like arrangement
+                # Calculate lateral position - alternate left and right sides
+                if i % 2 == 0:  # Even indices: position on the left
+                    lateral_offset = -spacing * (1 + i // 2)  # Increasing distance to the left
+                else:  # Odd indices: position on the right
+                    lateral_offset = spacing * (1 + i // 2)  # Increasing distance to the right
                 
+                # Stagger rows (distance behind the player)
+                row = (i // 2) + 1  # Each left-right pair forms a row
+                row_offset = -3.0 - (row * 2.0)  # Each row is further back
+                
+                # Apply calculated offsets
+                ai_start_offset_forward = track_forward_dir * row_offset
                 ai_kart_start_pos = start_pos_on_track + ai_start_offset_forward + (track_right_dir * lateral_offset)
                 ai_kart_start_pos.setZ(self.app.track.getZ() + 0.5) # Adjust Z
                 
@@ -170,10 +177,6 @@ class GameStateManager:
                 self.app.ai_karts.append(ai_kart_data)
 
                 # Create and store AI Controller for this kart
-                # Ensure self.app.trackCurvePoints are LPoint3f or compatible for AIController
-                # The AIController expects a list of LPoint3f for track_points.
-                # self.app.trackCurvePoints might be a list of Vec3. If so, they need conversion.
-                # For now, assuming they are compatible or will be made compatible.
                 if hasattr(self.app, 'trackCurvePoints') and self.app.trackCurvePoints:
                     controller = AIController(self.app, ai_kart_data, self.app.trackCurvePoints)
                     self.app.ai_controllers.append(controller)

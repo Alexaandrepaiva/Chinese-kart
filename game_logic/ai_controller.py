@@ -1,6 +1,6 @@
 from panda3d.core import Vec3, LPoint3f
 import random
-from config import LAPS_TO_FINISH, get_ai_speed_modifier  # Import difficulty-based speed modifier
+from config import LAPS_TO_FINISH, get_ai_speed_modifier, get_ai_turn_factor, get_ai_path_deviation
 
 class AIController:
     def __init__(self, app, kart_data, track_points):
@@ -15,11 +15,28 @@ class AIController:
         self.track_points = track_points
         self.current_target_index = 0
         
-        # Apply difficulty-based speed modifier to AI kart speed
-        base_speed = random.uniform(25.0, 40.0)
-        self.speed = base_speed * get_ai_speed_modifier()
+        # Use same max speed as player (50.0) with difficulty modifier
+        # This allows AI karts to reach 180 km/h just like the player
+        self.max_speed = 49.0
+        self.target_speed = self.max_speed * get_ai_speed_modifier()
         
-        self.path_offset = random.uniform(-0.5, 0.5) # Slight offset from the center line for variation
+        # Current actual speed (starts at 0 and accelerates)
+        self.current_speed = 0.0
+        
+        # Acceleration and deceleration rates (units per second²)
+        self.acceleration = 10.0  # Same as player kart
+        self.braking = 20.0       # Faster deceleration when needed
+        
+        # Get the difficulty-based path deviation range
+        max_deviation = get_ai_path_deviation()
+        # Randomize the path offset within the allowed deviation range
+        self.path_offset = random.uniform(-max_deviation, max_deviation)
+        # Add some randomness to target switching distance
+        self.target_switch_distance = random.uniform(1.8, 2.5)
+        
+        # Get the difficulty-based turn speed reduction factor
+        self.turn_speed_reduction = get_ai_turn_factor()
+        
         self.kart_data = kart_data # Store kart_data to update progress
 
         if not self.track_points:
@@ -47,7 +64,13 @@ class AIController:
         else: # At the end of the track
             track_right_dir = Vec3(1,0,0) # Default if no next point
 
+        # Apply the random offset
         offset_vector = track_right_dir * self.path_offset
+        
+        # Add small Z variation for more natural movement
+        z_variation = random.uniform(-0.1, 0.1)
+        offset_vector.addZ(z_variation)
+        
         return target_center_point + offset_vector
 
 
@@ -62,8 +85,8 @@ class AIController:
         kart_pos = self.kart_node.getPos()
         distance_to_target = (self.current_target_point - kart_pos).length()
 
-        # Check if target is reached
-        if distance_to_target < 2.0: # Threshold to switch target
+        # Check if target is reached using the randomized distance threshold
+        if distance_to_target < self.target_switch_distance:
             self.current_target_index += 1
             if self.current_target_index >= len(self.track_points):
                 # Lap completed for this AI
@@ -80,8 +103,6 @@ class AIController:
                         # For now, mark as finished but without a comparable time if player hasn't started timer.
                         self.kart_data['finish_time'] = -1 # Indicates finished but timing might be off
 
-                # print(f"AI {self.kart_node.getName()} completed lap {self.kart_data['current_lap']}")
-            
             # Update target point with offset
             self.current_target_point = self._get_offset_target_point(self.track_points[self.current_target_index])
 
@@ -89,12 +110,12 @@ class AIController:
         # Move towards the target point
         direction_to_target = (self.current_target_point - kart_pos).normalized()
         
-        # --- Speed adjustment based on turns ---
-        current_speed = self.speed # Base speed for this AI (already includes difficulty modifier)
+        # --- Calculate target speed based on turns and difficulty ---
+        target_speed = self.target_speed
+        
         # Look ahead to the next segment to adjust speed for turns
         if self.current_target_index + 1 < len(self.track_points):
             next_target_center_point = self.track_points[self.current_target_index + 1]
-            # No need to apply offset to this lookahead point, just for general direction
             
             vec_current_segment = (self.current_target_point - kart_pos).normalized()
             vec_next_segment = (next_target_center_point - self.current_target_point).normalized()
@@ -104,27 +125,59 @@ class AIController:
                 dot_product = vec_current_segment.dot(vec_next_segment)
                 turn_sharpness_factor = (1.0 + dot_product) / 2.0 # Normalize to 0 (sharp turn) - 1 (straight)
                 
-                # Reduce speed more for sharper turns (lower turn_sharpness_factor)
-                # Example: factor 0.5 (90 degree turn) might reduce speed by 40%
-                # factor 1.0 (straight) reduces speed by 0%
-                speed_reduction_on_turn = 0.6 # Max percentage of speed to reduce on sharpest turns
-                current_speed *= (1.0 - speed_reduction_on_turn * (1.0 - turn_sharpness_factor**2)) # Squared for more effect
-                current_speed = max(current_speed, self.speed * 0.3) # Don't slow down too much
+                # Apply difficulty-based speed reduction on turns
+                # self.turn_speed_reduction is higher on easy difficulty (more slowing down)
+                target_speed *= (1.0 - self.turn_speed_reduction * (1.0 - turn_sharpness_factor**2))
+                
+                # On straightaways, allow AI to reach full max speed when turn_sharpness_factor is close to 1
+                if turn_sharpness_factor > 0.95:
+                    target_speed = min(target_speed * 1.1, self.max_speed * get_ai_speed_modifier())
+                
+                # Add slight randomness to the minimum speed to create more varied behavior
+                min_speed_factor = 0.3 + random.uniform(-0.05, 0.05)
+                target_speed = max(target_speed, self.target_speed * min_speed_factor)
 
-        movement = direction_to_target * current_speed * dt
+        # Apply slight random speed variation for more natural movement
+        speed_variation = 1.0 + random.uniform(-0.05, 0.05)
+        target_speed *= speed_variation
+        
+        # --- Apply acceleration/deceleration to gradually approach target speed ---
+        # If current speed is less than target speed, accelerate
+        if self.current_speed < target_speed:
+            # Apply acceleration with some randomness to make each AI slightly different
+            accel_factor = 1.0 + random.uniform(-0.1, 0.1)
+            self.current_speed += self.acceleration * accel_factor * dt
+            # Cap at target speed
+            self.current_speed = min(self.current_speed, target_speed)
+        # If current speed is greater than target speed, decelerate
+        elif self.current_speed > target_speed:
+            # Brake harder when approaching sharp turns
+            if 'turn_sharpness_factor' in locals() and turn_sharpness_factor < 0.6:
+                # Sharp turn ahead, brake harder
+                self.current_speed -= self.braking * dt
+            else:
+                # Normal deceleration
+                self.current_speed -= self.acceleration * dt
+            # Don't slow down below target speed
+            self.current_speed = max(self.current_speed, target_speed)
+        
+        # Use current_speed (which respects acceleration limits) for movement
+        movement = direction_to_target * self.current_speed * dt
         
         new_pos = kart_pos + movement
         self.kart_node.setPos(new_pos)
 
-        # Make the kart look towards its direction of movement or the next target
-        # For smoother turning, look slightly ahead or at the target
-        if (self.current_target_point - new_pos).length_squared() > 0.01:
-             self.kart_node.lookAt(self.current_target_point)
+        # Make the kart look towards its direction of movement with slight randomness
+        look_target = self.current_target_point
         
-        # Simple collision avoidance (placeholder)
-        # This would require checking for obstacles or other karts and adjusting path
-        # For now, karts might pass through each other or simple obstacles
-
-        # Update AI kart progress (e.g., based on closest track point or segments passed)
-        # This is a simplified progress update. A more robust one would consider track segments.
+        # Add small random offset to look direction for more natural turning
+        if (look_target - new_pos).length_squared() > 0.01:
+            small_offset = Vec3(
+                random.uniform(-0.2, 0.2),
+                random.uniform(-0.2, 0.2),
+                0
+            )
+            self.kart_node.lookAt(look_target + small_offset)
+        
+        # Update AI kart progress
         self.kart_data['lap_progress'] = self.current_target_index / float(len(self.track_points)) 
