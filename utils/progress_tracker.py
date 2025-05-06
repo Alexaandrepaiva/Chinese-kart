@@ -8,13 +8,15 @@ class ProgressTracker:
         self.kart_progress = 0.0
         self.max_progress_reached = 0.0
         self.lap_completed = False
-        self.has_left_start_line = False  # New: flag for leaving the start area after race start
+        self.has_left_start_line = False  # Flag for leaving the start area after race start
+        self.current_lap = 0  # Track the number of laps completed
 
     def reset(self):
         self.kart_progress = 0.0
         self.max_progress_reached = 0.0
         self.lap_completed = False
         self.has_left_start_line = False
+        self.current_lap = 0
 
     def _point_segment_distance_sq(self, p, a, b):
         """Calculate the squared distance from point p to line segment (a, b)."""
@@ -56,20 +58,58 @@ class ProgressTracker:
     def update(self):
         previous_progress = self.kart_progress
         self.kart_progress = self.calculate_kart_progress()
-        self.max_progress_reached = max(self.max_progress_reached, self.kart_progress)
-
-        # Lap logic: require kart to leave the start area before a lap can be completed
-        crossed_start_line_backward = self.kart_progress > 0.95 and previous_progress < 0.05
-        left_start_area = self.kart_progress > 0.10 or previous_progress > 0.10
-
+        
+        # Detect direction and progress changes
+        progress_change = self.kart_progress - previous_progress
+        
+        # Handle wrap-around at start/finish line
+        if previous_progress > 0.9 and self.kart_progress < 0.1:
+            # Moving forward across the start/finish line (end to start)
+            progress_change = (1.0 - previous_progress) + self.kart_progress
+        elif previous_progress < 0.1 and self.kart_progress > 0.9:
+            # Moving backward across the start/finish line (start to end)
+            progress_change = -(previous_progress + (1.0 - self.kart_progress))
+        
+        # Going forward on the track (correct direction)
+        going_forward = progress_change > 0
+        
+        # Track maximum progress reached during this lap attempt
+        # Only update when moving in the correct direction
+        if going_forward:
+            self.max_progress_reached = max(self.max_progress_reached, self.kart_progress)
+        
+        # Lap completion logic: crossing finish line after going around most of the track
+        crossed_finish_line = previous_progress > 0.9 and self.kart_progress < 0.1 and going_forward
+        left_start_area = self.kart_progress > 0.1
+        
         if not self.has_left_start_line:
-            # Wait until the kart has left the start area (progress > 0.10)
+            # Wait until the kart has left the start area
             if left_start_area:
                 self.has_left_start_line = True
             return False
-
-        if crossed_start_line_backward and self.max_progress_reached > 0.90 and self.has_left_start_line:
+        
+        # Only count the lap if:
+        # 1. Crossed finish line going forward
+        # 2. Has gone through most of the track (at least 90% progress)
+        # 3. Has left the start area
+        if crossed_finish_line and self.max_progress_reached > 0.9 and self.has_left_start_line:
             if not self.lap_completed:
                 self.lap_completed = True
-                return True # Lap completed this frame
-        return False # Lap not completed this frame
+                self.current_lap += 1  # Increment lap counter
+                # Reset max progress for next lap
+                self.max_progress_reached = 0.0
+                return True  # Lap completed this frame
+        
+        return False  # Lap not completed this frame
+    
+    def has_completed_required_laps(self, required_laps):
+        """
+        Checks if the player has completed the required number of laps
+        
+        Args:
+            required_laps: Number of laps required to finish the race
+            
+        Returns:
+            bool: True if required laps completed, False otherwise
+        """
+        return self.current_lap >= required_laps

@@ -1,15 +1,21 @@
 import time
 from direct.task import Task
 from utils.camera import update_camera # Assuming update_camera is in utils
+from config import LAPS_TO_FINISH, MAX_LAWN_TIME  # Import constants from config
 
 class GameLoop:
     def __init__(self, app):
         self.app = app
-        self.MAX_LAWN_TIME = 3 # Could be moved to a config file later
+        self.MAX_LAWN_TIME = MAX_LAWN_TIME  # Using the constant from config
 
     def update(self, task):
         # This method is called by the task manager ONLY when state is 'playing'
         dt = globalClock.getDt()
+
+        # --- Update AI Karts ---
+        if hasattr(self.app, 'ai_controllers'):
+            for controller in self.app.ai_controllers:
+                controller.update(dt)
 
         # --- TIMER LOGIC ---
         # Start timer when kart first moves (velocity > 0.1 and timer not started)
@@ -52,10 +58,12 @@ class GameLoop:
 
         # Update Kart Progress and check for lap completion
         lap_just_completed = self.app.progress_tracker.update()
-        if lap_just_completed:
-             self.app.state_manager.game_won()
-             self.app.run_timer = False  # Stop timer
-             return Task.done # Stop the loop
+        
+        # Check if player has completed the required number of laps
+        if lap_just_completed and self.app.progress_tracker.has_completed_required_laps(LAPS_TO_FINISH):
+            self.app.state_manager.game_won()
+            self.app.run_timer = False  # Stop timer
+            return Task.done # Stop the loop
 
         # Update camera
         update_camera(self.app.cam, self.app.kart, dt)
