@@ -36,7 +36,15 @@ class GameStateManager:
             print("Starting Game!")
             self.change_state('playing')
 
-            # Hide menus (Original logic, ensuring each menu exists before hiding)
+            # Get configuration settings
+            config = self.app.menu_manager.get_game_config()
+            player_kart_color = config["kart_color"]
+            num_ai_karts = config["ai_kart_count"]
+            ai_colors = config["ai_colors"]  # Get the available colors for AI
+            
+            print(f"Starting game with kart color: {player_kart_color} and {num_ai_karts} AI karts")
+
+            # Hide all menus to ensure no menu is visible
             self.app.menu_manager.hide_menu()
             if hasattr(self.app.menu_manager, 'pause_menu') and self.app.menu_manager.pause_menu:
                 self.app.menu_manager.hide_pause_menu()
@@ -44,6 +52,8 @@ class GameStateManager:
                 self.app.menu_manager.hide_game_over_menu()
             if hasattr(self.app.menu_manager, 'game_won_menu') and self.app.menu_manager.game_won_menu:
                 self.app.menu_manager.hide_game_won_menu()
+            if hasattr(self.app.menu_manager, 'config_menu') and self.app.menu_manager.config_menu:
+                self.app.menu_manager.config_menu.hide()
 
             # Clean up any existing AI karts before creating new ones
             if hasattr(self.app, 'ai_karts') and self.app.ai_karts:
@@ -89,6 +99,10 @@ class GameStateManager:
             player_start_offset = track_forward_dir * -2 # Offset slightly behind the line
             player_kart_start_pos = start_pos_on_track + player_start_offset
             player_kart_start_pos.setZ(self.app.track.getZ() + 0.5) # Adjust Z based on track height
+
+            # Update player kart color from configuration
+            self.app.kart.setColor(player_kart_color)
+            
             self.app.kart.setPos(player_kart_start_pos)
             self.app.kart.lookAt(start_pos_on_track + track_forward_dir * 10) # Look further down the track
 
@@ -96,13 +110,9 @@ class GameStateManager:
             # --- AI Karts Setup ---
             self.app.ai_karts = [] # Clear previous AI karts if any
             self.app.ai_controllers = [] # Clear previous AI controllers
-            ai_colors = [
-                Vec4(0, 0, 1, 1),  # Blue
-                Vec4(0, 1, 0, 1),  # Green
-                Vec4(1, 1, 0, 1),  # Yellow
-                Vec4(0.5, 0, 0.5, 1) # Purple
-            ]
-            num_ai_karts = 4
+            
+            # Use AI colors from the configuration 
+            # If we have more AI karts than colors, we'll cycle through the available colors
             spacing = 2.0 # Spacing between karts
             
             # Stagger AI karts slightly and place them side-by-side
@@ -110,8 +120,11 @@ class GameStateManager:
             total_lineup_width = (num_ai_karts -1) * spacing
             
             for i in range(num_ai_karts):
+                # Get color for this AI kart
+                ai_color = ai_colors[i % len(ai_colors)]
+                
                 # Create AI kart
-                ai_kart_node, ai_collider = create_kart(self.app.gameRoot, self.app.loader, color=ai_colors[i % len(ai_colors)])
+                ai_kart_node, ai_collider = create_kart(self.app.gameRoot, self.app.loader, color=ai_color)
                 
                 # Position AI karts
                 # Offset from the center of the lineup
@@ -127,7 +140,7 @@ class GameStateManager:
                 ai_kart_data = {
                     'node': ai_kart_node, 
                     'collider': ai_collider, 
-                    'color': ai_colors[i % len(ai_colors)],
+                    'color': ai_color,
                     'name': f'AI Racer {i+1}',
                     'lap_progress': 0,
                     'lap_times': [],
