@@ -114,6 +114,10 @@ class KartGame(ShowBase):
         self.physics.setup_controls(self.accept)
         self.accept("escape", self.state_manager.toggle_pause) # Use state manager
 
+        # --- Camera View Control ---
+        self.accept("1", self.toggle_first_person_view)
+        self.accept("3", self.toggle_third_person_view)
+
         # --- Initial State ---
         self.state_manager.show_menu() # Start by showing the menu
         # print("Game Initialized.") # State manager handles prints
@@ -131,7 +135,6 @@ class KartGame(ShowBase):
         self.run_timer = True
         self.timer_start_time = time.time()
         self.timer_elapsed = 0.0
-
 
     # --- Collision: Stop kart on barrier ---
     def on_kart_barrier_collision(self, entry):
@@ -171,6 +174,24 @@ class KartGame(ShowBase):
             # without running game logic. This prevents dt issues on resume.
             # The GameStateManager handles starting/stopping this task appropriately.
             return Task.cont
+
+    def toggle_first_person_view(self):
+        """
+        Toggles the camera to first-person view
+        """
+        if self.state_manager.is_state('playing') and not self.input_blocked:
+            print("First-person view key (1) pressed")
+            from utils.camera import set_view_mode
+            set_view_mode(1)  # 1 = first-person view
+
+    def toggle_third_person_view(self):
+        """
+        Toggles the camera to third-person view
+        """
+        if self.state_manager.is_state('playing') and not self.input_blocked:
+            print("Third-person view key (3) pressed")
+            from utils.camera import set_view_mode
+            set_view_mode(3)  # 3 = third-person view
 
 # --- Application Entry Point ---
 if __name__ == "__main__":

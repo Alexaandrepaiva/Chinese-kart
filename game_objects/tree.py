@@ -10,7 +10,8 @@ def create_tree(start_pos, trunk_height=2.0, trunk_radius=0.2, leaf_radius=0.7):
     - trunk_radius: thickness of the trunk
     - leaf_radius: radius of the leaf sphere
     """
-    tree_np = render.attachNewNode('tree')
+    from panda3d.core import NodePath
+    tree_np = NodePath('tree')
     
     # Trunk (brown)
     trunk_color = (0.55, 0.27, 0.07, 1)

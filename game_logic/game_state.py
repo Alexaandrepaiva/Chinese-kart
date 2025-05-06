@@ -5,7 +5,7 @@ from direct.task import Task
 
 # Import necessary components from the main game or other modules
 # Assuming these are accessible or passed in
-from utils.camera import setup_camera_transition
+from utils.camera import setup_camera_transition, set_view_mode
 
 class GameStateManager:
     def __init__(self, app):
@@ -74,6 +74,10 @@ class GameStateManager:
             initial_cam_pos = self.app.kart.getPos() + sky_view_offset
             self.app.cam.setPos(initial_cam_pos)
             self.app.cam.lookAt(self.app.kart.getPos() + Vec3(0, 0, 2))
+
+            # Ensure we're using third-person view when starting the game
+            set_view_mode(3)  # 3 = third-person view
+
             setup_camera_transition(self.app.cam, self.app.kart)
 
             # --- Block input and wait for camera transition ---

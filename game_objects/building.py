@@ -9,7 +9,8 @@ def create_building(start_pos, building_height=10.0, building_width=1.5, buildin
     - building_width: width of the building
     - building_depth: depth of the building
     """
-    building_np = render.attachNewNode('building')
+    from panda3d.core import NodePath
+    building_np = NodePath('building')
 
     # Building (solid gray)
     building_color = (0.4, 0.4, 0.4, 1)  # solid gray
