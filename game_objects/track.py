@@ -557,12 +557,17 @@ def create_track(game_root):
     track_node.setPos(0, 0, 0)
 
     # --- Place a tree at the starting line ---
-    tree = create_tree( Vec3(273.61, -136.40, 0.50))
-    tree = create_tree( Vec3(296.24, 40.10, 0.50))
-    tree = create_tree( Vec3(284.63, 169.95, 0.50))
-    tree = create_tree( Vec3(52.04, 187.09, 0.50))
+    tree = create_tree(Vec3(273.61, -136.40, 0.50))
+    tree.reparentTo(track_node)
+    tree = create_tree(Vec3(296.24, 40.10, 0.50))
+    tree.reparentTo(track_node)
+    tree = create_tree(Vec3(284.63, 169.95, 0.50))
+    tree.reparentTo(track_node)
+    tree = create_tree(Vec3(52.04, 187.09, 0.50))
+    tree.reparentTo(track_node)
 
     building = create_building(Vec3(294.69, -107.00, 0.50))
+    building.reparentTo(track_node)
 
     return track_node, track_curve_points, track_points
 

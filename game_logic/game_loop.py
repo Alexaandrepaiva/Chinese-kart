@@ -30,10 +30,15 @@ class GameLoop:
         # Update total game time (legacy, may be used elsewhere)
         self.app.game_time = time.time() - self.app.game_start_time
 
-        # Update physics
-        road_width = 10.0
-        track_width = 20.0
-        self.app.physics.update(dt, self.app.track.getZ(), self.app.trackCurvePoints, road_width, track_width)
+        # Update physics with correct track dimensions
+        # These values should match those used in track.py
+        road_width = 15.0  # Width of the actual drivable road from track.py
+        sand_border_width = 12.0  # Width of the sand border on each side from track.py
+        track_width = road_width + (sand_border_width * 2)  # Total width including sand borders
+        stripe_width = 1.0  # Width of the warning stripes from track.py
+        
+        self.app.physics.update(dt, self.app.track.getZ(), self.app.trackCurvePoints, 
+                                road_width, track_width, stripe_width)
 
         # Check terrain and update lawn timer
         if self.app.physics.current_terrain == 'lawn':
