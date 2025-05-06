@@ -19,7 +19,6 @@ class Minimap:
         self.map_size = 0.2  # Size in aspect2d coordinates (0.2 of screen height - smaller)
         self.map_padding = 0.0  # No padding from right edge
         self.track_color = Vec4(0.3, 0.3, 0.3, 1)  # Gray for track
-        self.kart_color = Vec4(1, 0, 0, 1)  # Red for player kart marker
         self.bg_color = Vec4(0.8, 0.8, 0.8, 0.7)  # Light gray, semi-transparent
         
         # Create the minimap frame
@@ -225,13 +224,16 @@ class Minimap:
             # Get a copy of the current map image with the track
             temp_image = PNMImage(self.map_image)
             
+            # Get the player kart's actual color
+            player_kart_color = self.get_player_kart_color()
+            
             # Convert player kart position to texture coordinates
             player_kart_pos = self._world_to_texture_coords(
                 self.kart.getX(), self.kart.getY()
             )
             
             # Draw player kart marker (slightly larger than AI karts)
-            self._draw_kart_marker(temp_image, player_kart_pos, self.kart_color, marker_size=4)
+            self._draw_kart_marker(temp_image, player_kart_pos, player_kart_color, marker_size=4)
             
             # Draw AI kart markers if they exist
             if hasattr(self.base, 'ai_karts') and self.base.ai_karts:
@@ -248,10 +250,32 @@ class Minimap:
                     # Draw the AI kart marker
                     self._draw_kart_marker(temp_image, ai_kart_pos, kart_color, marker_size=3)
             
-            # Update the texture with the new image
+            # Apply the updated image to the texture
             self.map_texture.load(temp_image)
         
         return task.cont
+    
+    def get_player_kart_color(self):
+        """
+        Get the player kart's actual color from the kart model
+        
+        Returns:
+            Vec4: The color of the player kart
+        """
+        try:
+            # Try to get the color directly from the kart node
+            color = self.kart.getColor()
+            if color and color != Vec4(1, 1, 1, 1):  # If it's not white (default)
+                return color
+        except:
+            pass
+        
+        # Fallback: Try to get color from the configuration
+        if hasattr(self.base, 'menu_manager') and hasattr(self.base.menu_manager, 'kart_color'):
+            return self.base.menu_manager.kart_color
+            
+        # Final fallback: default red
+        return Vec4(1, 0, 0, 1)
     
     def show(self):
         """

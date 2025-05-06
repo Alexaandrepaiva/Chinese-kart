@@ -1,5 +1,6 @@
 import math
 from panda3d.core import Vec3
+import config
 
 class ProgressTracker:
     def __init__(self, kart, track_curve_points):
@@ -93,12 +94,16 @@ class ProgressTracker:
         # 2. Has gone through most of the track (at least 90% progress)
         # 3. Has left the start area
         if crossed_finish_line and self.max_progress_reached > 0.9 and self.has_left_start_line:
-            if not self.lap_completed:
-                self.lap_completed = True
-                self.current_lap += 1  # Increment lap counter
-                # Reset max progress for next lap
-                self.max_progress_reached = 0.0
-                return True  # Lap completed this frame
+            # Increment lap counter on each crossing of the finish line
+            self.current_lap += 1  # Increment lap counter
+            # Reset max progress for next lap
+            self.max_progress_reached = 0.0
+            return True  # Lap completed this frame
+        
+        # Reset lap_completed flag when far enough away from start/finish line
+        # to prepare for the next lap
+        if self.kart_progress > 0.1 and self.kart_progress < 0.9:
+            self.lap_completed = False
         
         return False  # Lap not completed this frame
     

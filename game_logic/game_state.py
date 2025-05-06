@@ -2,6 +2,7 @@ import sys
 import time
 from panda3d.core import Vec3, Vec4
 from direct.task import Task
+import config
 
 # Import necessary components from the main game or other modules
 # Assuming these are accessible or passed in
@@ -37,12 +38,20 @@ class GameStateManager:
             self.change_state('playing')
 
             # Get configuration settings
-            config = self.app.menu_manager.get_game_config()
-            player_kart_color = config["kart_color"]
-            num_ai_karts = config["ai_kart_count"]
-            ai_colors = config["ai_colors"]  # Get the available colors for AI
+            game_config = self.app.menu_manager.get_game_config()
+            player_kart_color = game_config["kart_color"]
+            num_ai_karts = game_config["ai_kart_count"]
+            ai_colors = game_config["ai_colors"]  # Get the available colors for AI
             
-            print(f"Starting game with kart color: {player_kart_color} and {num_ai_karts} AI karts")
+            # Update global difficulty setting
+            difficulty = game_config["difficulty"]
+            config.set_difficulty(difficulty)
+            
+            # Update global laps count setting
+            laps_count = game_config["laps_count"]
+            config.LAPS_TO_FINISH = laps_count
+            
+            print(f"Starting game with kart color: {player_kart_color}, {num_ai_karts} AI karts, difficulty: {difficulty}, laps: {laps_count}")
 
             # Hide all menus to ensure no menu is visible
             self.app.menu_manager.hide_menu()
@@ -78,6 +87,17 @@ class GameStateManager:
             self.app.gameRoot.show()
             self.app.minimap.show()
             self.app.hud_display.show()
+
+            # Initialize HUD with the starting position (1) and total racers
+            total_racers = 1 + num_ai_karts  # Player + AI karts
+            self.app.hud_display.update(
+                velocity=0,
+                timer_seconds=0,
+                position=1,  # Start in 1st position
+                total_racers=total_racers,
+                current_lap=0,  # Starting on first lap (0 will display as "Lap 1" in HUD)
+                total_laps=laps_count
+            )
 
             # --- Kart Starting Position ---
             start_pos_on_track = self.app.trackCurvePoints[0]

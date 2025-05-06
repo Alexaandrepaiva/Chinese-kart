@@ -1,5 +1,6 @@
 from direct.gui.DirectGui import DirectFrame, DirectButton, DirectLabel, DirectRadioButton
 from panda3d.core import TextNode, LVector4f, Vec4
+import config
 
 class MenuManager:
     def __init__(self, base):
@@ -14,6 +15,8 @@ class MenuManager:
         # Game configuration options
         self.kart_color = (1, 0, 0, 1)  # Default: red
         self.ai_kart_count = 3  # Default: 3 AI karts
+        self.difficulty = config.DIFFICULTY  # Use global default difficulty
+        self.laps_count = config.LAPS_TO_FINISH  # Default from config
         self.available_colors = {
             "Red": Vec4(1, 0, 0, 1),
             "Blue": Vec4(0, 0, 1, 1),
@@ -24,6 +27,10 @@ class MenuManager:
         }
         self.color_buttons = {}
         self.ai_count_underlines = {}
+        self.difficulty_buttons = {}
+        self.difficulty_underlines = {}
+        self.laps_buttons = {}
+        self.laps_underlines = {}
 
         # Load custom fonts
         try:
@@ -277,11 +284,14 @@ class MenuManager:
             text_font=self.title_font
         )
         
+        # Smaller font scale for all options to make room
+        option_scale = 0.06
+        
         # Kart color selection section
         DirectLabel(
             text="Kart Color:",
-            scale=0.07,
-            pos=(-0.6, 0, 0.3),
+            scale=option_scale,
+            pos=(-0.6, 0, 0.35),
             parent=menu,
             relief=None,
             text_align=TextNode.ALeft,
@@ -289,25 +299,24 @@ class MenuManager:
             text_font=self.options_font
         )
         
-        # Color selection squares
+        # Color selection squares - all in one row
         x_start = -0.6
-        y_pos = 0.2
-        square_size = 0.06
-        spacing = 0.15
+        y_pos = 0.27
+        square_size = 0.05  # Reduced size
+        spacing = 0.12      # Reduced spacing
         
         # Clear any existing color buttons
         self.color_buttons = {}
         
         for i, (color_name, color_value) in enumerate(self.available_colors.items()):
-            x_pos = x_start + (i % 3) * spacing
-            row_offset = (i // 3) * -0.15
+            x_pos = x_start + i * spacing
             
             # Create color square button
             self.color_buttons[color_name] = DirectButton(
                 frameColor=color_value,
                 frameSize=(-square_size, square_size, -square_size, square_size),
                 relief="raised",
-                pos=(x_pos, 0, y_pos + row_offset),
+                pos=(x_pos, 0, y_pos),
                 parent=menu,
                 command=self.select_kart_color,
                 extraArgs=[color_name]
@@ -319,8 +328,8 @@ class MenuManager:
         # AI Kart count selection
         DirectLabel(
             text="AI Opponents:",
-            scale=0.07,
-            pos=(-0.6, 0, -0.1),
+            scale=option_scale,
+            pos=(-0.6, 0, 0.15),
             parent=menu,
             relief=None,
             text_align=TextNode.ALeft,
@@ -329,22 +338,20 @@ class MenuManager:
         )
         
         # AI Count options
-        ai_counts = [1, 2, 3, 4, 5]  # Changed to 1-5
+        ai_counts = [1, 2, 3, 4, 5]
         ai_buttons = []
-        self.ai_count_underlines = {}  # Store underlines instead of borders
+        self.ai_count_underlines = {}
         
-        # Increase spacing between buttons to accommodate larger clickable areas
-        button_spacing = 0.30  # Increased from 0.25
+        button_spacing = 0.12
         
         for i, count in enumerate(ai_counts):
             x_pos = -0.6 + i * button_spacing
             
             button = DirectButton(
                 text=str(count),
-                scale=0.07,
-                pos=(x_pos, 0, -0.2),
-                # Significantly increase clickable area (both width and height)
-                frameSize=(-0.2, 0.2, -0.2, 0.2),  
+                scale=option_scale,
+                pos=(x_pos, 0, 0.07),
+                frameSize=(-0.08, 0.08, -0.08, 0.08),
                 frameColor=(0.5, 0.5, 0.5, 0.7),
                 relief="raised",
                 text_fg=(1, 1, 1, 1),
@@ -353,13 +360,13 @@ class MenuManager:
                 extraArgs=[count]
             )
             
-            # Add an underline for the selected count (initially hidden)
+            # Add proper underline directly below the text
             underline = DirectFrame(
                 frameColor=(0, 1, 0, 1),  # Green underline
-                frameSize=(-0.15, 0.15, -0.015, 0.015),  # Make underline wider to match larger button
+                frameSize=(-0.04, 0.04, -0.004, 0.004),
                 state="disabled",
                 parent=menu,
-                pos=(x_pos, 0, -0.35)  # Moved lower to account for larger button
+                pos=(x_pos, 0, 0.04)  # Directly below the text
             )
             
             # Show underline only for selected count, hide for others
@@ -371,6 +378,115 @@ class MenuManager:
                 
             self.ai_count_underlines[count] = underline
             ai_buttons.append(button)
+        
+        # Difficulty selection
+        DirectLabel(
+            text="Difficulty:",
+            scale=option_scale,
+            pos=(-0.6, 0, -0.05),
+            parent=menu,
+            relief=None,
+            text_align=TextNode.ALeft,
+            text_fg=(1, 1, 1, 1),
+            text_font=self.options_font
+        )
+        
+        # Difficulty options
+        difficulties = ["easy", "regular", "hard"]
+        difficulty_labels = ["Easy", "Regular", "Hard"]
+        self.difficulty_buttons = {}
+        self.difficulty_underlines = {}
+        
+        button_spacing = 0.18
+        
+        for i, (diff, label) in enumerate(zip(difficulties, difficulty_labels)):
+            x_pos = -0.6 + i * button_spacing
+            
+            button = DirectButton(
+                text=label,
+                scale=option_scale,
+                pos=(x_pos, 0, -0.13),
+                frameSize=(-0.08, 0.08, -0.08, 0.08),
+                frameColor=(0.5, 0.5, 0.5, 0.7),
+                relief="raised",
+                text_fg=(1, 1, 1, 1),
+                parent=menu,
+                command=self.select_difficulty,
+                extraArgs=[diff]
+            )
+            
+            # Add proper underline directly below the text
+            underline = DirectFrame(
+                frameColor=(0, 1, 0, 1),  # Green underline
+                frameSize=(-0.06, 0.06, -0.004, 0.004),
+                state="disabled",
+                parent=menu,
+                pos=(x_pos, 0, -0.16)  # Directly below the text
+            )
+            
+            # Show underline only for selected difficulty, hide for others
+            if diff == self.difficulty:
+                button["frameColor"] = (0.2, 0.7, 0.2, 0.7)  # Green button background
+                underline.show()
+            else:
+                underline.hide()
+                
+            self.difficulty_buttons[diff] = button
+            self.difficulty_underlines[diff] = underline
+        
+        # Number of Laps selection
+        DirectLabel(
+            text="Race Laps:",
+            scale=option_scale,
+            pos=(-0.6, 0, -0.25),
+            parent=menu,
+            relief=None,
+            text_align=TextNode.ALeft,
+            text_fg=(1, 1, 1, 1),
+            text_font=self.options_font
+        )
+        
+        # Laps options
+        laps_counts = [1, 2, 3, 4, 5]
+        self.laps_buttons = {}
+        self.laps_underlines = {}
+        
+        button_spacing = 0.12
+        
+        for i, laps in enumerate(laps_counts):
+            x_pos = -0.6 + i * button_spacing
+            
+            button = DirectButton(
+                text=str(laps),
+                scale=option_scale,
+                pos=(x_pos, 0, -0.33),
+                frameSize=(-0.08, 0.08, -0.08, 0.08),
+                frameColor=(0.5, 0.5, 0.5, 0.7),
+                relief="raised",
+                text_fg=(1, 1, 1, 1),
+                parent=menu,
+                command=self.select_laps_count,
+                extraArgs=[laps]
+            )
+            
+            # Add proper underline directly below the text
+            underline = DirectFrame(
+                frameColor=(0, 1, 0, 1),  # Green underline
+                frameSize=(-0.04, 0.04, -0.004, 0.004),
+                state="disabled",
+                parent=menu,
+                pos=(x_pos, 0, -0.36)  # Directly below the text
+            )
+            
+            # Show underline only for selected count, hide for others
+            if laps == self.laps_count:
+                button["frameColor"] = (0.2, 0.7, 0.2, 0.7)  # Green button background
+                underline.show()
+            else:
+                underline.hide()
+                
+            self.laps_buttons[laps] = button
+            self.laps_underlines[laps] = underline
         
         # Back button
         DirectButton(
@@ -443,19 +559,60 @@ class MenuManager:
         for ai_count, underline in self.ai_count_underlines.items():
             if ai_count == count:
                 underline.show()
+                # Find the corresponding button and update its color
+                for button in self.config_menu.findAllMatches("**/DirectButton"):
+                    try:
+                        if button.get_text() == str(count):
+                            button["frameColor"] = (0.2, 0.7, 0.2, 0.7)  # Highlight selected
+                    except:
+                        pass
             else:
                 underline.hide()
-                
-        # Refresh the config menu to update visual feedback
-        for button in self.config_menu.findAllMatches("**/DirectButton"):
-            try:
-                button_text = button.get_text()
-                if button_text == str(count):
-                    button["frameColor"] = (0.2, 0.7, 0.2, 0.7)  # Highlight the selected button
-                elif button_text in [str(c) for c in self.ai_count_underlines.keys()]:
-                    button["frameColor"] = (0.5, 0.5, 0.5, 0.7)  # Reset other count buttons
-            except:
-                pass  # Skip buttons without text or non-numeric text
+                # Reset other buttons
+                for button in self.config_menu.findAllMatches("**/DirectButton"):
+                    try:
+                        if button.get_text() == str(ai_count):
+                            button["frameColor"] = (0.5, 0.5, 0.5, 0.7)  # Reset others
+                    except:
+                        pass
+    
+    def select_difficulty(self, difficulty):
+        """
+        Sets the game difficulty level
+        
+        Args:
+            difficulty: Difficulty level (easy, regular, hard)
+        """
+        self.difficulty = difficulty
+        # Update global difficulty setting
+        config.set_difficulty(difficulty)
+        
+        # Update visual feedback for difficulty selection
+        for diff, underline in self.difficulty_underlines.items():
+            if diff == difficulty:
+                underline.show()
+                self.difficulty_buttons[diff]["frameColor"] = (0.2, 0.7, 0.2, 0.7)  # Highlight selected
+            else:
+                underline.hide()
+                self.difficulty_buttons[diff]["frameColor"] = (0.5, 0.5, 0.5, 0.7)  # Reset others
+    
+    def select_laps_count(self, laps):
+        """
+        Sets the number of laps for the race
+        
+        Args:
+            laps: Number of laps (1-5)
+        """
+        self.laps_count = laps
+        
+        # Update visual feedback for lap selection
+        for count, underline in self.laps_underlines.items():
+            if count == laps:
+                underline.show()
+                self.laps_buttons[count]["frameColor"] = (0.2, 0.7, 0.2, 0.7)  # Highlight selected
+            else:
+                underline.hide()
+                self.laps_buttons[count]["frameColor"] = (0.5, 0.5, 0.5, 0.7)  # Reset others
     
     def show_config_menu(self):
         """
@@ -485,7 +642,7 @@ class MenuManager:
         Returns the current game configuration
         
         Returns:
-            dict: Configuration containing kart_color and ai_kart_count
+            dict: Configuration containing kart_color, ai_kart_count, difficulty, and laps_count
         """
         # Get all available colors except the selected one for AI karts
         ai_colors = []
@@ -496,5 +653,7 @@ class MenuManager:
         return {
             "kart_color": self.kart_color,
             "ai_kart_count": self.ai_kart_count,
-            "ai_colors": ai_colors  # Pass all remaining colors for AI karts
+            "ai_colors": ai_colors,  # Pass all remaining colors for AI karts
+            "difficulty": self.difficulty,  # Add difficulty setting
+            "laps_count": self.laps_count  # Add laps count setting
         }

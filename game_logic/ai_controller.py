@@ -1,6 +1,6 @@
 from panda3d.core import Vec3, LPoint3f
 import random
-from config import LAPS_TO_FINISH  # Import the lap constant from config
+from config import LAPS_TO_FINISH, get_ai_speed_modifier  # Import difficulty-based speed modifier
 
 class AIController:
     def __init__(self, app, kart_data, track_points):
@@ -14,7 +14,11 @@ class AIController:
         self.kart_node = kart_data['node']
         self.track_points = track_points
         self.current_target_index = 0
-        self.speed = random.uniform(25.0, 40.0) # Increased speed range for AI karts for better challenge
+        
+        # Apply difficulty-based speed modifier to AI kart speed
+        base_speed = random.uniform(25.0, 40.0)
+        self.speed = base_speed * get_ai_speed_modifier()
+        
         self.path_offset = random.uniform(-0.5, 0.5) # Slight offset from the center line for variation
         self.kart_data = kart_data # Store kart_data to update progress
 
@@ -86,7 +90,7 @@ class AIController:
         direction_to_target = (self.current_target_point - kart_pos).normalized()
         
         # --- Speed adjustment based on turns ---
-        current_speed = self.speed # Base speed for this AI
+        current_speed = self.speed # Base speed for this AI (already includes difficulty modifier)
         # Look ahead to the next segment to adjust speed for turns
         if self.current_target_index + 1 < len(self.track_points):
             next_target_center_point = self.track_points[self.current_target_index + 1]
