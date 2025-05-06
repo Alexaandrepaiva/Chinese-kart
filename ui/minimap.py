@@ -19,7 +19,7 @@ class Minimap:
         self.map_size = 0.2  # Size in aspect2d coordinates (0.2 of screen height - smaller)
         self.map_padding = 0.0  # No padding from right edge
         self.track_color = Vec4(0.3, 0.3, 0.3, 1)  # Gray for track
-        self.kart_color = Vec4(1, 0, 0, 1)  # Red for kart marker
+        self.kart_color = Vec4(1, 0, 0, 1)  # Red for player kart marker
         self.bg_color = Vec4(0.8, 0.8, 0.8, 0.7)  # Light gray, semi-transparent
         
         # Create the minimap frame
@@ -194,34 +194,59 @@ class Minimap:
                 err += dx
                 y0 += sy
     
+    def _draw_kart_marker(self, temp_image, position, color, marker_size=3):
+        """
+        Draw a kart marker at the given position with the specified color
+        
+        Args:
+            temp_image: The PNMImage to draw on
+            position: (x, y) tuple with texture coordinates
+            color: Vec4 color to use for the marker
+            marker_size: Size of the marker in pixels
+        """
+        kart_x, kart_y = position
+        for dx in range(-marker_size, marker_size + 1):
+            for dy in range(-marker_size, marker_size + 1):
+                if dx*dx + dy*dy <= marker_size*marker_size:  # Circle equation
+                    # Draw pixel if it's within the image bounds
+                    pixel_x = int(kart_x + dx)
+                    pixel_y = int(kart_y + dy)
+                    if (0 <= pixel_x < self.map_tex_size and 
+                        0 <= pixel_y < self.map_tex_size):
+                        temp_image.setXel(pixel_x, pixel_y, 
+                                        color[0], color[1], color[2])
+    
     def update_minimap(self, task):
         """
-        Update the kart marker on the minimap
+        Update the kart markers on the minimap
         """
         # Only update if the minimap is visible
         if not self.minimap_frame.isHidden():
             # Get a copy of the current map image with the track
             temp_image = PNMImage(self.map_image)
             
-            # Convert kart position to texture coordinates
-            kart_x, kart_y = self._world_to_texture_coords(
+            # Convert player kart position to texture coordinates
+            player_kart_pos = self._world_to_texture_coords(
                 self.kart.getX(), self.kart.getY()
             )
             
-            # Draw kart marker (a filled circle)
-            marker_size = 4  # Size of the marker in pixels
-            for dx in range(-marker_size, marker_size + 1):
-                for dy in range(-marker_size, marker_size + 1):
-                    if dx*dx + dy*dy <= marker_size*marker_size:  # Circle equation
-                        # Draw pixel if it's within the image bounds
-                        pixel_x = int(kart_x + dx)
-                        pixel_y = int(kart_y + dy)
-                        if (0 <= pixel_x < self.map_tex_size and 
-                            0 <= pixel_y < self.map_tex_size):
-                            temp_image.setXel(pixel_x, pixel_y, 
-                                             self.kart_color[0], 
-                                             self.kart_color[1], 
-                                             self.kart_color[2])
+            # Draw player kart marker (slightly larger than AI karts)
+            self._draw_kart_marker(temp_image, player_kart_pos, self.kart_color, marker_size=4)
+            
+            # Draw AI kart markers if they exist
+            if hasattr(self.base, 'ai_karts') and self.base.ai_karts:
+                for ai_kart in self.base.ai_karts:
+                    # Get the kart node and color from the ai_kart data
+                    kart_node = ai_kart['node']
+                    kart_color = ai_kart['color']
+                    
+                    # Convert AI kart position to texture coordinates
+                    ai_kart_pos = self._world_to_texture_coords(
+                        kart_node.getX(), kart_node.getY()
+                    )
+                    
+                    # Draw the AI kart marker
+                    self._draw_kart_marker(temp_image, ai_kart_pos, kart_color, marker_size=3)
             
             # Update the texture with the new image
             self.map_texture.load(temp_image)

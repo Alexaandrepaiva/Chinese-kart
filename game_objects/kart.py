@@ -1,8 +1,9 @@
 from panda3d.core import CardMaker, Vec4, CollisionNode, CollisionBox, Point3
 
-def create_kart(game_root, loader):
+def create_kart(game_root, loader, color=Vec4(1, 0, 0, 1)):
     """
     Creates the kart for the game
+    Accepts a color parameter to set the kart's color.
     """
     try:
          # Try loading the model first
@@ -27,7 +28,7 @@ def create_kart(game_root, loader):
          kart = kart_node  # Assign the parent node as the kart
 
     # Set common properties outside try/except
-    kart.setColor(Vec4(1, 0, 0, 1))  # Red color
+    kart.setColor(color)  # Use the provided color
     
     # --- Rotate the kart 180 degrees to align its visual front with +Y ---
     kart.setH(180)

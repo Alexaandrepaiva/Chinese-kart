@@ -1,5 +1,6 @@
 from panda3d.core import Point3, Vec3, Vec4, CardMaker, NodePath, TransparencyAttrib
 from .tree import create_tree
+import math
 
 def create_starting_line(game_root, track_curve_points):
     """
@@ -45,19 +46,20 @@ def create_starting_line(game_root, track_curve_points):
     card.setShaderInput("uSquaresY", 2.0)   # Number of rows
     
     # Position the starting line at the track's starting point
-    # Raise it slightly above the track to avoid z-fighting
-    starting_line_node.setPos(start_point)
-    starting_line_node.setZ(0.1)  # Slightly above the track
+    current_track_z = start_point.getZ()
+    starting_line_node.setPos(start_point.getX(), start_point.getY(), current_track_z + 0.05) # Position slightly above track surface
 
-
-    # Orient the card to be perpendicular to the track direction
-    # The card's default orientation is facing up (Z+)
-    # We need to rotate it to face perpendicular to the track direction
-    starting_line_node.lookAt(next_point)
-    starting_line_node.setH(starting_line_node.getH() + 60)  # Rotate 90 degrees to make it perpendicular to track
+    # Orient the starting_line_node
+    look_at_target = Point3(next_point.getX(), next_point.getY(), start_point.getZ())
+    starting_line_node.lookAt(look_at_target)
     
-    # We don't need a colored border for the classic checkered flag look
+    # After lookAt, we need to rotate the card 90 degrees around its local X-axis
+    # to make it lie flat on the track instead of standing perpendicular
+    card.setP(-90)
     
+    # Ensure the card is flat on the track surface
+    starting_line_node.setP(0)
+    starting_line_node.setR(0)
 
     return starting_line_node
 
