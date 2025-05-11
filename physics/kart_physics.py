@@ -153,9 +153,10 @@ class KartPhysics:
         # --- Update Kart Position and Rotation ---
         # Update Heading first
         self.kart.setH(current_heading)
-        # Prevent kart from tilting visually
-        self.kart.setP(0)
-        self.kart.setR(0)
+        # For .egg models, we want to preserve the model's original orientation
+        # while still preventing unwanted tilting
+        # self.kart.setP(0)  # Commented out to preserve model's pitch
+        self.kart.setR(0)  # Keep this to prevent roll
 
         # Move kart based on velocity and HORIZONTAL direction
         forward_vec = self.kart.getQuat().getForward()
