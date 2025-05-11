@@ -1,4 +1,4 @@
-from panda3d.core import CardMaker, Vec4, CollisionNode, CollisionBox, Point3
+from panda3d.core import CardMaker, Vec4, CollisionNode, CollisionBox, Point3, NodePath
 
 def create_kart(game_root, loader, color=Vec4(1, 0, 0, 1)):
     """
@@ -12,7 +12,6 @@ def create_kart(game_root, loader, color=Vec4(1, 0, 0, 1)):
     Returns:
         tuple: (kart_node, collider_node)
     """
-    print(f"Type of color: {type(color)}\nColor: {color}")
     
     # Map colors to model files
     color_to_model = {
@@ -21,6 +20,7 @@ def create_kart(game_root, loader, color=Vec4(1, 0, 0, 1)):
         Vec4(1, 0, 0, 1): "models/car-red.egg",
         Vec4(1, 1, 0, 1): "models/car-yellow.egg",
         Vec4(0.8, 0, 0.8, 1): "models/car-purple.egg",
+        Vec4(1, 0.5, 0, 1): "models/car-orange.egg",
     }
     
     # Get the appropriate model file based on color
