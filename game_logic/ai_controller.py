@@ -1,5 +1,6 @@
 from panda3d.core import Vec3, LPoint3f
 import random
+import time
 from config import LAPS_TO_FINISH, get_ai_speed_modifier, get_ai_turn_factor, get_ai_path_deviation
 
 class AIController:
@@ -10,6 +11,9 @@ class AIController:
         - kart_data: The dictionary containing the AI kart's 'node' and other properties.
         - track_points: A list of LPoint3f representing the centerline of the track.
         """
+        # Reset the random seed to ensure a new random offset each time
+        random.seed(time.time())
+        
         self.app = app
         self.kart_node = kart_data['node']
         self.track_points = track_points
