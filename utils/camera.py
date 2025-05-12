@@ -77,7 +77,7 @@ def setup_camera_transition(camera, kart):
 
     # Calculate the TARGET camera position based on view mode
     if view_mode == 1:  # First-person view
-        cam_offset = Vec3(1, 2.0, 1.5)  # Position at the front face of the kart, at driver eye level
+        cam_offset = Vec3(0, 3.0, 1.36)  # Position at the front face of the kart, at driver eye level
         rotated_offset = kart.getQuat().xform(cam_offset)
         target_position = kart.getPos() + rotated_offset
     else:  # Third-person view (default)
@@ -125,7 +125,7 @@ def update_camera(camera, kart, dt=None):
     
     # Get target camera position based on view mode
     if view_mode == 1:  # First-person view
-        cam_offset = Vec3(1, 2.0, 1.5)  # Position at the front face of the kart, at driver eye level
+        cam_offset = Vec3(0, 3.0, 1.36)  # Position at the front face of the kart, at driver eye level
         rotated_offset = kart.getQuat().xform(cam_offset)
         target_cam_pos = kart.getPos() + rotated_offset
     else:  # Third-person view (default)
@@ -154,7 +154,7 @@ def update_camera(camera, kart, dt=None):
         # Calculate the new target_position for this specific view switch transition
         # (target_cam_pos is the instantaneous ideal position, target_position is the fixed end point for this transition)
         if view_mode == 1:
-            cam_offset_switch = Vec3(1, 2.0, 1.5)
+            cam_offset_switch = Vec3(0, 3.0, 1.36)
             target_position = kart.getPos() + kart.getQuat().xform(cam_offset_switch) # Update global target_position for this switch
         else: # view_mode == 3
             cam_offset_switch = Vec3(0, -15, 7)

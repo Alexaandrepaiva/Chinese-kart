@@ -1,6 +1,6 @@
 from panda3d.core import CardMaker, Vec4, CollisionNode, CollisionBox, Point3, NodePath
 
-def create_kart(game_root, loader, color=Vec4(1, 0, 0, 1)):
+def create_kart(game_root, loader, color=Vec4(1, 0, 0, 1), show_collider=False):
     """
     Creates a kart model and returns the node and collider
     
@@ -8,6 +8,7 @@ def create_kart(game_root, loader, color=Vec4(1, 0, 0, 1)):
         game_root: The root node to attach the kart to
         loader: The asset loader
         color: The color of the kart (Vec4)
+        show_collider: Se deve mostrar o colisor para depuração
         
     Returns:
         tuple: (kart_node, collider_node)
@@ -58,9 +59,18 @@ def create_kart(game_root, loader, color=Vec4(1, 0, 0, 1)):
     kart.setColor(color)
     
     # Create a collider for the kart
-    collider = CollisionNode("kart-collider")
-    collider.addSolid(CollisionBox(Point3(0, 0, 0), 0.5, 0.5, 0.5))
+    collider = CollisionNode("kart_collision")
+    # Usar os tamanhos específicos para a caixa de colisão
+    collider.addSolid(CollisionBox(Point3(0, 0, 0.2), 0.6, 0.98, 0.4))  # Ajustado o centro um pouco para cima
+    
+    # Configuração de colisão: o kart deve testar colisão com barreiras e outros karts
+    # BitMask 0x1 corresponde às barreiras
+    # BitMask 0x2 corresponde a outros karts
+    collider.setFromCollideMask(0x1 | 0x2)  # Kart will test for collisions with barriers and other karts
+    collider.setIntoCollideMask(0x2)  # Other karts can collide with this kart
+    
     collider_node = kart.attachNewNode(collider)
-    # collider_node.show()  # For debugging
+    if show_collider:
+        collider_node.show()  # For debugging
     
     return kart, collider_node

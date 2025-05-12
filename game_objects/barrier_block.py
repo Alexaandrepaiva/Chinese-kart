@@ -75,10 +75,19 @@ class BarrierBlock:
     def _create_collision(self, size):
         # Add a collision box
         cnode = CollisionNode('barrier_collision')
-        cbox = CollisionBox(Point3(0,0,0), size[0]/2, size[1]/2, size[2]/2)
+        # Adicionar um pequeno padding ao colisor para melhorar a detecção
+        padding = 0.05
+        padded_size = (size[0]/2 + padding, size[1]/2 + padding, size[2]/2 + padding)
+        cbox = CollisionBox(Point3(0,0,0), padded_size[0], padded_size[1], padded_size[2])
         cnode.add_solid(cbox)
-        cnode.set_into_collide_mask(0x1)
-        cnode.set_from_collide_mask(0)
+        # Configuração correta das máscaras de colisão
+        # A barreira deve ser colidida mas não testar colisão com outros objetos
+        cnode.set_into_collide_mask(0x1)  # Objects can collide into this barrier
+        cnode.set_from_collide_mask(0)    # Barrier won't test for collisions itself
+        
+        # Para o CollisionHandlerPusher funcionar corretamente, a barreira precisa ser 
+        # um nó estático, mas isso já é o comportamento padrão para objetos sem uma
+        # configuração especial do traverser
         cnp = self.node.attach_new_node(cnode)
         cnp.set_pos(0, 0, 0)
         cnp.set_hpr(0, 0, 0)
