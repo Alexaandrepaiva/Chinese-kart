@@ -58,8 +58,14 @@ def create_kart(game_root, loader, color=Vec4(1, 0, 0, 1)):
     kart.setColor(color)
     
     # Create a collider for the kart
-    collider = CollisionNode("kart-collider")
+    collider = CollisionNode("kart_collision")
     collider.addSolid(CollisionBox(Point3(0, 0, 0), 0.5, 0.5, 0.5))
+    
+    # Configuração de colisão: o kart deve testar colisão com as barreiras
+    # BitMask 0x1 corresponde às barreiras
+    collider.setFromCollideMask(0x1)  # Kart will test for collisions with barriers
+    collider.setIntoCollideMask(0x2)  # Other karts can collide with this kart (0x2 mask for kart-to-kart)
+    
     collider_node = kart.attachNewNode(collider)
     # collider_node.show()  # For debugging
     

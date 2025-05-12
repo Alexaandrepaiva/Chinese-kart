@@ -185,3 +185,23 @@ class AIController:
         
         # Update AI kart progress
         self.kart_data['lap_progress'] = self.current_target_index / float(len(self.track_points)) 
+
+    def handle_barrier_collision(self):
+        """
+        Trata a colisão entre um kart AI e uma barreira
+        Recua o kart ligeiramente e muda a direção
+        """
+        # Reduzir velocidade
+        self.current_speed = 0
+        
+        # Recuar ligeiramente
+        kart_node = self.kart_data['node']
+        backward = -kart_node.getQuat().getForward() * 0.5
+        pos = kart_node.getPos() + Vec3(backward.x, backward.y, 0)
+        kart_node.setPos(pos)
+        
+        # Mudar direção levemente para evitar ficar preso
+        target_point_index = self.current_target_index
+        if target_point_index > 0:
+            target_point_index -= 1
+        self.current_target_point = self._get_offset_target_point(self.track_points[target_point_index]) 

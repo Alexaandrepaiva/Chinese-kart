@@ -86,14 +86,20 @@ class KartGame(ShowBase):
         # log_kart_position_every_second(self.kart)
 
         # --- Collision Traverser and Handler ---
-        from panda3d.core import CollisionTraverser
+        from panda3d.core import CollisionTraverser, BitMask32
         from panda3d.core import CollisionHandlerEvent
-        self.cTrav = CollisionTraverser()
+        self.cTrav = CollisionTraverser('main traverser')
         self.collision_handler = CollisionHandlerEvent()
-        self.collision_handler.add_in_pattern('%fn-into-%in')
+        
+        # Pattern to match kart and barrier node names
+        self.collision_handler.add_in_pattern('collision_%fn-into-%in')
         self.cTrav.add_collider(self.kart_collider, self.collision_handler)
-        # Listen for kart into barrier event
-        self.accept('kart_collision-into-barrier_collision', self.on_kart_barrier_collision)
+        
+        # Listen for kart into barrier event with correct node names
+        self.accept('collision_kart_collision-into-barrier_collision', self.on_kart_barrier_collision)
+        
+        # Enable this for debugging collisions
+        # self.cTrav.showCollisions(self.render)
 
         # --- Core Components Initialization ---
         self.physics = KartPhysics(self.kart)
@@ -141,13 +147,26 @@ class KartGame(ShowBase):
 
     # --- Collision: Stop kart on barrier ---
     def on_kart_barrier_collision(self, entry):
-        # Stop the kart instantly
-        self.physics.velocity = 0
-        # Optionally, move the kart slightly back to prevent sticking
-        from panda3d.core import Vec3
-        backward = -self.kart.getQuat().getForward() * 0.5
-        pos = self.kart.getPos() + Vec3(backward.x, backward.y, 0)
-        self.kart.setPos(pos)
+        # Identificar qual objeto kart colidiu
+        from_node_path = entry.getFromNodePath()
+        
+        # Se foi o kart do jogador
+        if from_node_path == self.kart_collider:
+            # Stop the kart instantly
+            self.physics.velocity = 0
+            # Optionally, move the kart slightly back to prevent sticking
+            from panda3d.core import Vec3
+            backward = -self.kart.getQuat().getForward() * 0.5
+            pos = self.kart.getPos() + Vec3(backward.x, backward.y, 0)
+            self.kart.setPos(pos)
+        else:
+            # Verificar se foi um AI kart
+            for i, controller in enumerate(self.ai_controllers):
+                ai_collider = self.ai_karts[i]['collider']
+                if from_node_path == ai_collider:
+                    # Usar o manipulador de colisão específico para AI
+                    controller.handle_barrier_collision()
+                    break
 
     # The core game update task - delegates based on state
     def updateGame(self, task):

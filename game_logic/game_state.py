@@ -144,6 +144,17 @@ class GameStateManager:
                 # Create AI kart
                 ai_kart_node, ai_collider = create_kart(self.app.gameRoot, self.app.loader, color=ai_color)
                 
+                # Configurar colisão para AI karts
+                ai_collider.node().setFromCollideMask(0x1)  # AI Karts will test for collisions with barriers
+                ai_collider.node().setIntoCollideMask(0x2)  # Other karts can collide with this kart
+                self.app.cTrav.add_collider(ai_collider, self.app.collision_handler)
+                
+                # Registrar o evento de colisão específico para este kart AI
+                ai_kart_index = len(self.app.ai_karts)
+                if hasattr(self.app, 'accept'):
+                    event_name = f'collision_kart_collision-into-barrier_collision'
+                    self.app.accept(event_name, self.app.on_kart_barrier_collision)
+                
                 # Position AI karts
                 # Determine the row and column for a grid-like arrangement
                 # Calculate lateral position - alternate left and right sides
