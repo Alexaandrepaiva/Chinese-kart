@@ -84,6 +84,10 @@ class BarrierBlock:
         # A barreira deve ser colidida mas não testar colisão com outros objetos
         cnode.set_into_collide_mask(0x1)  # Objects can collide into this barrier
         cnode.set_from_collide_mask(0)    # Barrier won't test for collisions itself
+        
+        # Para o CollisionHandlerPusher funcionar corretamente, a barreira precisa ser 
+        # um nó estático, mas isso já é o comportamento padrão para objetos sem uma
+        # configuração especial do traverser
         cnp = self.node.attach_new_node(cnode)
         cnp.set_pos(0, 0, 0)
         cnp.set_hpr(0, 0, 0)

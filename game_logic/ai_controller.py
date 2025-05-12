@@ -189,19 +189,113 @@ class AIController:
     def handle_barrier_collision(self):
         """
         Trata a colisão entre um kart AI e uma barreira
-        Recua o kart ligeiramente e muda a direção
+        Ajusta o comportamento do kart após a colisão
         """
         # Reduzir velocidade
         self.current_speed = 0
-        
-        # Recuar ligeiramente
-        kart_node = self.kart_data['node']
-        backward = -kart_node.getQuat().getForward() * 0.5
-        pos = kart_node.getPos() + Vec3(backward.x, backward.y, 0)
-        kart_node.setPos(pos)
         
         # Mudar direção levemente para evitar ficar preso
         target_point_index = self.current_target_index
         if target_point_index > 0:
             target_point_index -= 1
-        self.current_target_point = self._get_offset_target_point(self.track_points[target_point_index]) 
+        self.current_target_point = self._get_offset_target_point(self.track_points[target_point_index])
+
+    def handle_kart_collision(self, collision_direction, is_frontal=False, is_rear=False, is_side=False):
+        """
+        Trata a colisão entre karts, ajustando o comportamento do AI para evitar ficar preso
+        
+        Args:
+            collision_direction: Vetor de direção da colisão
+            is_frontal: Se a colisão foi frontal (AI bateu na traseira de outro kart)
+            is_rear: Se a colisão foi traseira (AI foi atingido por trás)
+            is_side: Se a colisão foi lateral
+        """
+        # Ajustar velocidade baseado no tipo de colisão
+        if is_frontal:
+            # Se bateu em outro kart pela traseira, reduzir velocidade significativamente
+            self.current_speed *= 0.6
+            
+            # Tentar desviar lateralmente
+            kart_pos = self.kart_data['node'].getPos()
+            kart_forward = self.kart_data['node'].getQuat().getForward()
+            
+            # Gerar um vetor de desvio lateral
+            lateral_vector = kart_forward.cross(Vec3(0, 0, 1))
+            lateral_vector.normalize()
+            
+            # Escolher aleatoriamente entre esquerda e direita
+            if random.random() < 0.5:
+                lateral_vector *= -1
+            
+            # Modificar o ponto alvo para desviar
+            deviation_strength = 2.0 + random.random() * 1.0  # Desvio de 2-3 unidades
+            target_point_index = min(self.current_target_index + 1, len(self.track_points) - 1)
+            base_target = self._get_offset_target_point(self.track_points[target_point_index])
+            
+            # Aplicar desvio lateral para contornar
+            self.current_target_point = base_target + lateral_vector * deviation_strength
+            
+        elif is_rear:
+            # Se foi atingido por trás, não reduzir tanto a velocidade
+            self.current_speed *= 0.9
+            
+            # Tentar acelerar um pouco para se afastar
+            self.current_speed += 2.0
+            
+        elif is_side:
+            # Em colisão lateral, reduzir menos a velocidade
+            self.current_speed *= 0.8
+            
+            # Criar uma direção de desvio baseada na normal da colisão
+            kart_pos = self.kart_data['node'].getPos()
+            kart_forward = self.kart_data['node'].getQuat().getForward()
+            
+            # Para colisões laterais, tentar continuar na direção do movimento
+            # mas com um leve ajuste para se afastar do ponto de colisão
+            perp_vector = Vec3(-collision_direction.y, collision_direction.x, 0)
+            perp_vector.normalize()
+            
+            # Mesclar a direção frontal com uma componente lateral para contornar o obstáculo
+            deviation_vector = (kart_forward * 0.7) + (perp_vector * 0.3)
+            deviation_vector.normalize()
+            
+            # Procurar o próximo ponto do track que esteja na direção geral do movimento
+            search_index = self.current_target_index
+            best_dot = -1
+            best_index = search_index
+            
+            # Buscar um ponto na pista que seja mais adequado para a nova direção
+            for i in range(5):  # Verificar até 5 pontos à frente
+                check_index = (self.current_target_index + i) % len(self.track_points)
+                check_point = self.track_points[check_index]
+                check_dir = check_point - kart_pos
+                check_dir.normalize()
+                
+                dot = check_dir.dot(deviation_vector)
+                if dot > best_dot:
+                    best_dot = dot
+                    best_index = check_index
+            
+            # Avançar para o melhor ponto encontrado
+            if best_index != self.current_target_index:
+                self.current_target_index = best_index
+                self.current_target_point = self._get_offset_target_point(self.track_points[best_index])
+        
+        # Fallback para colisões não classificadas
+        else:
+            # Comportamento padrão quando o tipo de colisão não é claro
+            self.current_speed *= 0.7
+            
+            # Gerar um pequeno desvio aleatório
+            perp_vector = Vec3(-collision_direction.y, collision_direction.x, 0)
+            perp_vector.normalize()
+            
+            # Escolher aleatoriamente entre esquerda e direita
+            if random.random() < 0.5:
+                perp_vector *= -1
+            
+            # Aplicar um desvio moderado
+            deviation_amount = random.uniform(1.5, 2.5)
+            target_point_index = self.current_target_index
+            base_target = self._get_offset_target_point(self.track_points[target_point_index])
+            self.current_target_point = base_target + perp_vector * deviation_amount 

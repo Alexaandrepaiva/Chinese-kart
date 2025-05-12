@@ -79,7 +79,7 @@ class KartGame(ShowBase):
         # Create the starting line
         self.starting_line = create_starting_line(self.gameRoot, self.trackCurvePoints)
 
-        self.kart, self.kart_collider = create_kart(self.gameRoot, self.loader)
+        self.kart, self.kart_collider = create_kart(self.gameRoot, self.loader, show_collider=False)
         # --- Kart Position Logging for Object Placement ---
         # This is a debug utility that logs kart positions - commenting out to prevent extra karts from appearing
         # from utils.object_placement import log_kart_position_every_second
@@ -87,16 +87,26 @@ class KartGame(ShowBase):
 
         # --- Collision Traverser and Handler ---
         from panda3d.core import CollisionTraverser, BitMask32
-        from panda3d.core import CollisionHandlerEvent
+        from panda3d.core import CollisionHandlerEvent, CollisionHandlerPusher
         self.cTrav = CollisionTraverser('main traverser')
-        self.collision_handler = CollisionHandlerEvent()
         
-        # Pattern to match kart and barrier node names
+        # Handler de eventos para detectar colisões
+        self.collision_handler = CollisionHandlerEvent()
         self.collision_handler.add_in_pattern('collision_%fn-into-%in')
-        self.cTrav.add_collider(self.kart_collider, self.collision_handler)
+        
+        # Handler de físicas para evitar que objetos se atravessem
+        self.pusher = CollisionHandlerPusher()
+        # Configurar padrões de mensagem para o pusher
+        self.pusher.add_in_pattern('pusher_%fn-into-%in')
+        
+        # Configurar o kart do jogador com o pusher para prevenção de atravessamento
+        self.pusher.add_collider(self.kart_collider, self.kart)
+        self.cTrav.add_collider(self.kart_collider, self.pusher)
         
         # Listen for kart into barrier event with correct node names
-        self.accept('collision_kart_collision-into-barrier_collision', self.on_kart_barrier_collision)
+        # Usar o padrão de mensagem correto para o pusher
+        self.accept('pusher_kart_collision-into-barrier_collision', self.on_kart_barrier_collision)
+        self.accept('pusher_kart_collision-into-kart_collision', self.on_kart_kart_collision)
         
         # Enable this for debugging collisions
         # self.cTrav.showCollisions(self.render)
@@ -147,6 +157,10 @@ class KartGame(ShowBase):
 
     # --- Collision: Stop kart on barrier ---
     def on_kart_barrier_collision(self, entry):
+        """
+        Trata colisões entre kart e barreiras 
+        O CollisionHandlerPusher já cuida de impedir que o kart atravesse a barreira
+        """
         # Identificar qual objeto kart colidiu
         from_node_path = entry.getFromNodePath()
         
@@ -154,11 +168,6 @@ class KartGame(ShowBase):
         if from_node_path == self.kart_collider:
             # Stop the kart instantly
             self.physics.velocity = 0
-            # Optionally, move the kart slightly back to prevent sticking
-            from panda3d.core import Vec3
-            backward = -self.kart.getQuat().getForward() * 0.5
-            pos = self.kart.getPos() + Vec3(backward.x, backward.y, 0)
-            self.kart.setPos(pos)
         else:
             # Verificar se foi um AI kart
             for i, controller in enumerate(self.ai_controllers):
@@ -166,6 +175,107 @@ class KartGame(ShowBase):
                 if from_node_path == ai_collider:
                     # Usar o manipulador de colisão específico para AI
                     controller.handle_barrier_collision()
+                    break
+                    
+    # --- Collision: Handle kart-to-kart collision ---
+    def on_kart_kart_collision(self, entry):
+        """
+        Trata colisões entre karts para ajustar comportamentos após colisões
+        O CollisionHandlerPusher já cuida de impedir que os karts se atravessem
+        """
+        # Obter as informações da colisão
+        from_node_path = entry.getFromNodePath()
+        into_node_path = entry.getIntoNodePath()
+        
+        # Obter o ponto de contato e a normal da colisão
+        from panda3d.core import Vec3, Point3
+        contact_pos = entry.getSurfacePoint(self.render)
+        contact_normal = entry.getSurfaceNormal(self.render)
+        
+        # Se o kart do jogador colidiu com outro kart
+        if from_node_path == self.kart_collider:
+            kart_pos = self.kart.getPos()
+            kart_forward = self.kart.getQuat().getForward()
+            
+            # Encontrar o kart com o qual colidiu (para determinar sua direção)
+            collided_kart = None
+            for ai_kart in self.ai_karts:
+                if into_node_path == ai_kart['collider']:
+                    collided_kart = ai_kart['node']
+                    break
+            
+            if collided_kart:
+                # Determinar a direção relativa dos dois karts
+                collided_kart_forward = collided_kart.getQuat().getForward()
+                
+                # Calcular o vetor da colisão (do jogador para o kart colidido)
+                collision_vector = collided_kart.getPos() - kart_pos
+                collision_vector.normalize()
+                
+                # Produto escalar para determinar o ângulo entre as direções
+                dot_forward = kart_forward.dot(collision_vector)
+                
+                # Calcular ângulo entre as direções para determinar se é colisão lateral
+                dot_sideways = abs(kart_forward.cross(collision_vector).z)
+                
+                # Colisão frontal (o jogador bateu na traseira do outro kart)
+                if dot_forward > 0.7:
+                    # Reduzir velocidade significativamente em colisões traseiras
+                    self.physics.velocity *= 0.7
+                # Colisão traseira (o jogador foi atingido por trás)
+                elif dot_forward < -0.7:
+                    # O jogador foi atingido por trás - não reduzir velocidade 
+                    pass
+                # Colisão lateral (o impacto foi pela lateral)
+                elif dot_sideways > 0.7:
+                    # Em colisão lateral, reduzir menos a velocidade
+                    self.physics.velocity *= 0.9
+        
+        # Se um kart AI colidiu com outro kart
+        else:
+            # Identificar qual AI kart colidiu
+            for i, controller in enumerate(self.ai_controllers):
+                ai_collider = self.ai_karts[i]['collider']
+                if from_node_path == ai_collider:
+                    ai_kart_node = self.ai_karts[i]['node']
+                    ai_pos = ai_kart_node.getPos()
+                    ai_forward = ai_kart_node.getQuat().getForward()
+                    
+                    # Encontrar o kart com o qual colidiu
+                    collided_with_player = (into_node_path == self.kart_collider)
+                    collided_ai_index = -1
+                    
+                    if not collided_with_player:
+                        for j, other_ai in enumerate(self.ai_karts):
+                            if i != j and into_node_path == other_ai['collider']:
+                                collided_ai_index = j
+                                break
+                    
+                    # Determinar a direção da colisão
+                    if collided_with_player:
+                        collision_vector = self.kart.getPos() - ai_pos
+                        collided_forward = self.kart.getQuat().getForward()
+                    elif collided_ai_index >= 0:
+                        other_kart = self.ai_karts[collided_ai_index]['node']
+                        collision_vector = other_kart.getPos() - ai_pos
+                        collided_forward = other_kart.getQuat().getForward()
+                    else:
+                        # Não encontrou com quem colidiu, usar normal da colisão
+                        collision_vector = -contact_normal
+                        collided_forward = Vec3(0, 0, 0)
+                    
+                    collision_vector.normalize()
+                    
+                    # Determinar o tipo de colisão baseado no ângulo
+                    dot_forward = ai_forward.dot(collision_vector)
+                    dot_sideways = abs(ai_forward.cross(collision_vector).z)
+                    
+                    # Notificar o AI controller sobre a colisão com informações adicionais
+                    is_frontal = (dot_forward > 0.5)  # Colisão frontal (AI bateu em algo)
+                    is_rear = (dot_forward < -0.5)    # Colisão traseira (AI foi atingido)
+                    is_side = (dot_sideways > 0.5)    # Colisão lateral
+                    
+                    controller.handle_kart_collision(collision_vector, is_frontal, is_rear, is_side)
                     break
 
     # The core game update task - delegates based on state
