@@ -104,16 +104,14 @@ class GameStateManager:
             # Ensure we look towards a point further along the track for initial orientation
             look_at_point = self.app.trackCurvePoints[1] if len(self.app.trackCurvePoints) > 1 else self.app.trackCurvePoints[0] + Vec3(0, -1, 0)
 
-
             # Calculate the forward direction of the track at the start
             track_forward_dir = (look_at_point - start_pos_on_track).normalized()
             
             # Calculate a right vector (perpendicular to forward and up)
             # Assuming standard Z-up coordinate system
-            track_right_dir = track_forward_dir.cross(Vec3.up()) 
+            track_right_dir = track_forward_dir.cross(Vec3.up())
             if track_right_dir.length_squared() < 0.001: # If forward is (nearly) up/down
                  track_right_dir = Vec3(1,0,0) # Default to X-axis
-
 
             # Player kart positioning (slightly behind the actual starting line for visual appeal)
             player_start_offset = track_forward_dir * -2 # Offset slightly behind the line
@@ -126,14 +124,13 @@ class GameStateManager:
             self.app.kart.setPos(player_kart_start_pos)
             self.app.kart.lookAt(start_pos_on_track + track_forward_dir * 10) # Look further down the track
 
-
             # --- AI Karts Setup ---
             self.app.ai_karts = [] # Clear previous AI karts if any
             self.app.ai_controllers = [] # Clear previous AI controllers
             
             # Use AI colors from the configuration 
             # If we have more AI karts than colors, we'll cycle through the available colors
-            spacing = 3.0 # Increased spacing between karts for better starting positions
+            spacing = 3.0
             
             # Karts will be positioned in a grid-like formation, with none directly behind the player
             # Calculate positions differently to avoid center spot (player position)
@@ -144,22 +141,19 @@ class GameStateManager:
                 # Create AI kart
                 ai_kart_node, ai_collider = create_kart(self.app.gameRoot, self.app.loader, color=ai_color, show_collider=False)
                 
-                # Configurar colisão para AI karts
+                # Configure collision for AI karts
                 ai_collider.node().setFromCollideMask(0x1 | 0x2)  # AI Karts will test for collisions with barriers and other karts
                 ai_collider.node().setIntoCollideMask(0x2)  # Other karts can collide with this kart
                 
-                # Configurar o pusher para o kart da AI para evitar atravessamento
+                # Configure the pusher for the AI kart to prevent clipping
                 self.app.pusher.add_collider(ai_collider, ai_kart_node)
                 self.app.cTrav.add_collider(ai_collider, self.app.pusher)
                 
-                # Registrar o evento de colisão específico para este kart AI
-                ai_kart_index = len(self.app.ai_karts)
-                if hasattr(self.app, 'accept'):
-                    # Registrar tanto colisões com barreiras quanto com outros karts
-                    barrier_event_name = f'pusher_kart_collision-into-barrier_collision'
-                    kart_event_name = f'pusher_kart_collision-into-kart_collision'
-                    self.app.accept(barrier_event_name, self.app.on_kart_barrier_collision)
-                    self.app.accept(kart_event_name, self.app.on_kart_kart_collision)
+                # Register collision events for this AI kart
+                barrier_event_name = f'pusher_kart_collision-into-barrier_collision'
+                kart_event_name = f'pusher_kart_collision-into-kart_collision'
+                self.app.accept(barrier_event_name, self.app.on_kart_barrier_collision)
+                self.app.accept(kart_event_name, self.app.on_kart_kart_collision)
                 
                 # Position AI karts
                 # Determine the row and column for a grid-like arrangement
@@ -200,7 +194,7 @@ class GameStateManager:
                 else:
                     print(f"Warning: Could not create AIController for {ai_kart_data['name']} due to missing track points.")
 
-            # Reset physics for player (AI kart physics will need to be handled)
+            # Reset physics for player
             self.app.physics.reset()
 
             # --- Camera setup ---
@@ -221,7 +215,6 @@ class GameStateManager:
             # Start the game update task if not already running
             if not self.app.taskMgr.hasTaskNamed("updateGameTask"):
                  self.app.taskMgr.add(self.app.updateGame, "updateGameTask")
-
 
     def toggle_pause(self):
         if self.is_state('playing'):

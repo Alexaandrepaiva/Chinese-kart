@@ -18,17 +18,17 @@ DIFFICULTY = "regular"  # Default difficulty (options: "easy", "regular", "hard"
 
 # AI speed modifiers based on difficulty
 AI_SPEED_MODIFIERS = {
-    "easy": 0.8,      # AI karts move at 80% speed in easy mode
-    "regular": 1.0,   # AI karts move at 100% speed in regular mode
-    "hard": 1.2       # AI karts move at 120% speed in hard mode
+    "easy": 1.0,      # AI karts move at 100% speed in easy mode
+    "regular": 1.2,   # AI karts move at 120% speed in regular mode
+    "hard": 1.5       # AI karts move at 150% speed in hard mode
 }
 
 # AI turn handling based on difficulty
 # Higher values mean more reduction in speed when taking turns
 AI_TURN_HANDLING = {
-    "easy": 0.8,      # AI karts slow down significantly on turns in easy mode
-    "regular": 0.6,   # AI karts slow down moderately on turns in regular mode
-    "hard": 0.2       # AI karts maintain more speed on turns in hard mode
+    "easy": 0.6,      # AI karts slow down less on turns in easy mode
+    "regular": 0.4,   # AI karts slow down less on turns in regular mode
+    "hard": 0.1       # AI karts barely slow down on turns in hard mode
 }
 
 # AI path deviation range based on difficulty
@@ -38,6 +38,23 @@ AI_PATH_DEVIATION = {
     "regular": 1.5,   # Moderate deviation from center line
     "hard": 1.0       # Less deviation (more optimal racing line)
 }
+
+# Callback functions for difficulty changes
+_difficulty_callbacks = []
+
+def register_difficulty_callback(callback):
+    """
+    Register a callback function to be called when difficulty changes
+    """
+    if callback not in _difficulty_callbacks:
+        _difficulty_callbacks.append(callback)
+
+def unregister_difficulty_callback(callback):
+    """
+    Unregister a difficulty change callback
+    """
+    if callback in _difficulty_callbacks:
+        _difficulty_callbacks.remove(callback)
 
 # Function to get current AI speed modifier
 def get_ai_speed_modifier():
@@ -74,6 +91,19 @@ def set_difficulty(difficulty):
     if difficulty in AI_SPEED_MODIFIERS:
         DIFFICULTY = difficulty
         print(f"Difficulty set to: {difficulty}")
+        # Notify all registered callbacks about the difficulty change
+        for callback in _difficulty_callbacks:
+            try:
+                callback(difficulty)
+            except Exception as e:
+                print(f"Error in difficulty callback: {e}")
     else:
         print(f"Invalid difficulty: {difficulty}, using regular")
-        DIFFICULTY = "regular" 
+        DIFFICULTY = "regular"
+
+# Function to get current difficulty
+def get_difficulty():
+    """
+    Returns the current difficulty setting
+    """
+    return DIFFICULTY 

@@ -595,6 +595,17 @@ class MenuManager:
             else:
                 underline.hide()
                 self.difficulty_buttons[diff]["frameColor"] = (0.5, 0.5, 0.5, 0.7)  # Reset others
+        
+        # If we're in a game, update the AI controllers with the new difficulty
+        if hasattr(self.base, 'ai_controllers') and self.base.ai_controllers:
+            # Reinitialize AI controllers with new difficulty
+            track_points = self.base.trackCurvePoints if hasattr(self.base, 'trackCurvePoints') else None
+            if track_points:
+                for i, ai_kart_data in enumerate(self.base.ai_karts):
+                    # Create new controller with updated difficulty
+                    new_controller = AIController(self.base, ai_kart_data, track_points)
+                    # Replace old controller
+                    self.base.ai_controllers[i] = new_controller
     
     def select_laps_count(self, laps):
         """
