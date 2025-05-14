@@ -72,10 +72,8 @@ The game window should appear, and you can start playing!
 
 Below is a glimpse of the Chinese-kart gameplay experience.
 
-*(Placeholder: Please add a compelling screenshot or GIF of the game in action here. For example:)*
-`[Gameplay Screenshot/GIF: A kart racing on the track, UI elements visible]`
+https://github.com/user-attachments/assets/378007fe-0191-4153-9655-d7a3260820f2
 
-This preview should showcase the game's visual style, a kart in motion, and perhaps some UI elements like the minimap or HUD.
 
 ## 4. Specifications
 
